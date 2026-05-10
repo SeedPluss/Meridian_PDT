@@ -1,0 +1,23 @@
+{
+  "id": "seegson-status-report",
+  "type": "DATA_DUMP",
+  "title": "System Status Report — Boot Cycle 441",
+  "level": 1,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-03-14",
+  "author": "MUTHUR 6000",
+  "visible": true,
+  "living": false,
+  "content": {
+    "entries": [
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "REACTOR",        "status": "DEGRADED",  "value": "40%",  "note": "Integrity below nominal. Repair recommended." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "POWER_GRID",     "status": "OFFLINE",   "value": "0%",   "note": "Awaiting reactor stabilization." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "LIFE_SUPPORT",   "status": "OFFLINE",   "value": "N/A",  "note": "Manual bypass required." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "LIGHTING",       "status": "OFFLINE",   "value": "0/13", "note": "Emergency reserves only." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "COMMS_LOCAL",    "status": "OFFLINE",   "value": "N/A",  "note": "Pending power restore." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "COMMS_LONGRANGE","status": "OFFLINE",   "value": "N/A",  "note": "Pending power restore." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "MOTION_TRACKER", "status": "OFFLINE",   "value": "0/13", "note": "Sensor array power cut." },
+      { "timestamp": "2183-03-14T00:00:01Z", "system": "CARGO_XB71",    "status": "ANOMALOUS", "value": "ERR",  "note": "Mass reading 0.0 kg. Sensor fault or shielded container." }
+    ]
+  }
+}

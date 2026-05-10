@@ -1,0 +1,19 @@
+{
+  "id": "safety-orientation-vid",
+  "type": "VIDEO_LOG",
+  "title": "Safety Orientation — Mining Operations",
+  "level": 1,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-01-10",
+  "author": "Seegson Human Resources",
+  "visible": true,
+  "living": false,
+  "content": {
+    "duration": "00:08:34",
+    "codec": "SEEGSON-MPEG4",
+    "thumbnail_note": "[Static frame — presenter in orange Seegson coveralls]",
+    "transcript_excerpt": "[00:00] Welcome to the Seegson Operational Safety Briefing for Mining-Class Vessels.\n[00:14] Always wear your environment suit when entering Cargo Bays C1 through C4.\n[00:31] In the event of a hull integrity warning, proceed immediately to your assigned muster point.\n[01:05] Xenobiological contact protocols: Section 7, Appendix D of your crew handbook.\n[01:20] Note that all biological samples require quarantine in Bay C2 isolation cells.\n[07:44] Seegson values your safety. Your survival is our bottom line.\n[08:34] END OF MANDATORY VIEWING",
+    "integrity": 100,
+    "corruption_note": null
+  }
+}

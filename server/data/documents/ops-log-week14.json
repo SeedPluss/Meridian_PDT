@@ -1,0 +1,14 @@
+{
+  "id": "ops-log-week14",
+  "type": "TEXT_LOG",
+  "title": "Operations Log — Week 14",
+  "level": 1,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-03-10",
+  "author": "Officer Verlaine",
+  "visible": true,
+  "living": false,
+  "content": {
+    "body": "WEEK 14 — OPERATIONS LOG\nAuthor: Officer Verlaine\n\nDAY 92:\nNominal. Crew rotation completed. Kowalski flagged vent replacement in C-Deck for third consecutive week. Approved.\n\nDAY 93:\nMUTHUR flagged minor LS temperature drop in B3 (22C to 19C over 6 hours). Self-corrected. No action taken.\n\nDAY 94:\nChen raised concerns about sounds from C3 during night cycle. Could not reproduce. Logged as acoustical artefact.\n\nDAY 95:\nW-Y check-in. Routine. No new instructions regarding XB-71.\n\nDAY 96:\nKowalski completed vent C3-North replacement. Fourth unit this month. Cause undetermined.\n\nDAY 97:\nCrew morale acceptable. Rest cycle observed.\n\nDAY 98:\n[ENTRY MISSING]"
+  }
+}

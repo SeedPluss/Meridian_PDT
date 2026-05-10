@@ -1,0 +1,14 @@
+{
+  "id": "emergency-protocols",
+  "type": "TEXT_LOG",
+  "title": "Emergency Response Protocols Rev. 3",
+  "level": 1,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-01-01",
+  "author": "Seegson Safety Division",
+  "visible": true,
+  "living": false,
+  "content": {
+    "body": "USCSS MERIDIAN — EMERGENCY PROTOCOLS REV. 3\n\n1. FIRE\n   - Activate suppression via Bridge panel A1.\n   - Evacuate affected sector. Seal bulkheads.\n\n2. HULL BREACH\n   - Emergency seal kits located in B4 Security and C1 Engineering.\n   - Do not attempt repair without environment suit.\n\n3. MEDICAL EMERGENCY\n   - Report to Medbay B3.\n   - If B3 unavailable: apply emergency kit (every crew locker).\n\n4. HOSTILE CONTACT\n   - Hostile contact is defined in Appendix A.\n   - Lock down affected sector. Contact Security Office B4.\n   - Do NOT engage without authorization.\n\n5. BIOLOGICAL HAZARD\n   - Follow Section 7 of crew handbook.\n   - Quarantine: Bay C2 isolation cells.\n   - Notify Officer Verlaine immediately.\n\n[Seegson note: This document does not supersede W-Y priority directives.]"
+  }
+}

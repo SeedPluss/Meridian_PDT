@@ -1,0 +1,18 @@
+{
+  "id": "wy-specimen-order",
+  "type": "EMAIL",
+  "title": "Specimen Acquisition — Priority OMEGA",
+  "level": 3,
+  "classification": "CLASSIFIED",
+  "date": "2183-02-01",
+  "author": "W-Y Executive",
+  "visible": false,
+  "living": false,
+  "content": {
+    "from": "executive@weylandyutani.corp",
+    "to": "science@weylandyutani.corp",
+    "cc": "",
+    "subject": "Specimen Acquisition — OMEGA Priority — MERIDIAN DEPLOYMENT",
+    "body": "Science Division,\n\nThis communication is OMEGA clearance only.\n\nMURDOCH has confirmed viable specimen capture at Sigma Draconis IV survey site (see attached assessment XB-71-PRELIM, not included here).\n\nSpecimen is to be transported aboard USCSS Meridian using cover cargo manifest. Container XB-71 environmental specs are attached.\n\nCrew expendability: AUTHORIZED. If specimen containment requires crew elimination, this is sanctioned at the executive level. Do not contact crew regarding the nature of their cargo.\n\nSpecimen must arrive at Gateway Station viable. This is a billion-credit acquisition.\n\nSurvival of crew: SECONDARY OBJECTIVE.\n\nW-Y Executive Office\nProject Prometheus"
+  }
+}

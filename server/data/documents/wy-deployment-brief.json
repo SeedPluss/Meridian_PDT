@@ -1,0 +1,18 @@
+{
+  "id": "wy-deployment-brief",
+  "type": "EMAIL",
+  "title": "Operational Deployment Brief",
+  "level": 1,
+  "classification": "RESTRICTED",
+  "date": "2183-02-28",
+  "author": "W-Y Corporate Operations",
+  "visible": true,
+  "living": false,
+  "content": {
+    "from": "ops@weylandyutani.corp",
+    "to": "verlaine@uscss-meridian.corp",
+    "cc": "science@weylandyutani.corp",
+    "subject": "Operational Deployment Brief — USCSS Meridian MRD-2183",
+    "body": "Officer Verlaine,\n\nThis brief supersedes all prior communication regarding cargo manifest MRD-2183.\n\nContainer XB-71 is to be treated as a PRIORITY SPECIMEN TRANSPORT. You are not to open, scan, or interfere with the container under any circumstances. The container's environmental controls are self-sustaining.\n\nIn the event of any anomalous readings from XB-71 or the surrounding cargo bay, you are to SEAL BAY C2 immediately and await further instruction via long-range comms.\n\nDo NOT engage crew medical until you have contacted this office.\n\nThis communication is classified RESTRICTED. Do not distribute.\n\nW-Y Operations\nProject Prometheus Division"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "security-evacuation-email",
+  "type": "EMAIL",
+  "title": "Emergency Evacuation — Deck B",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-14",
+  "author": "Security Chief",
+  "visible": false,
+  "living": false,
+  "content": {
+    "from": "security@uscss-meridian.corp",
+    "to": "all@uscss-meridian.corp",
+    "cc": "verlaine@uscss-meridian.corp",
+    "subject": "EMERGENCY — All Personnel Evacuate Deck B",
+    "body": "ALL CREW — IMMEDIATE ACTION REQUIRED\n\nEvacuate Deck B NOW. Do not stop to collect personal items.\n\nProceed to Bridge (A1) or Engineering (C1) and await further instruction.\n\nDo not use Corridor B2.\n\nSecurity Office is sealed. I am attempting to reach Medbay B3.\n\nDo NOT go to B3.\n\nRepeat: DO NOT GO TO B3.\n\n— Security\n\n[This message was the last transmission from the Security Chief's terminal. Timestamp: 2183-03-14T03:47:00Z]"
+  }
+}

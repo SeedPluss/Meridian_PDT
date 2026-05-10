@@ -1,0 +1,14 @@
+{
+  "id": "classified-order-xo7",
+  "type": "TEXT_LOG",
+  "title": "Classified Operational Order XO-7",
+  "level": 3,
+  "classification": "CLASSIFIED",
+  "date": "2183-01-30",
+  "author": "W-Y Command",
+  "visible": false,
+  "living": false,
+  "content": {
+    "body": "WEYLAND-YUTANI CORPORATION\nCLASSIFIED OPERATIONAL ORDER XO-7\nPROJECT PROMETHEUS — PHASE 3 ACQUISITION\n\nAUTHORIZATION LEVEL: OMEGA\nRECIPIENTS: SCIENCE LEAD, VESSEL COMMANDER\n\n1. PURPOSE\nSecure live specimen from Sigma Draconis IV survey site for delivery to Gateway Station BioResearch Facility P-7.\n\n2. ASSET PROTECTION\nThe specimen is the primary asset. Human crew are secondary assets. In any conflict between specimen survival and crew survival, the specimen takes priority.\n\n3. COVER IDENTITY\nCargo manifest will list container as 'Seegson Synthetic Resin (Industrial Grade).' Vessel commander is briefed under separate cover story. Science lead knows the full picture.\n\n4. EMERGENCY PROTOCOL\nIf the specimen breaches containment: DO NOT destroy it. Attempt recovery. If recovery is impossible, signal W-Y immediately and await extraction. DO NOT signal for external rescue — exposure risk.\n\n5. CREW DISPOSITION\nIf crew members are exposed: quarantine. Do not allow evacuation off-vessel. The specimen cannot be permitted to reach open stations.\n\nSECTION 5 AUTHORIZED BY: W-Y Executive Office\nLEGAL REVIEW: Approved under Appendix F (Biological Asset Recovery)\n\n[End of Order XO-7]"
+  }
+}

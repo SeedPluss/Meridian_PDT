@@ -1,0 +1,20 @@
+{
+  "id": "maintenance-log-w16",
+  "type": "DATA_DUMP",
+  "title": "Maintenance Log — Week 16",
+  "level": 2,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-03-14",
+  "author": "Engineer Kowalski",
+  "visible": false,
+  "living": false,
+  "content": {
+    "entries": [
+      { "timestamp": "2183-03-14T08:00:00Z", "system": "VENT_C3_NORTH",   "action": "REPLACE", "notes": "5th replacement. Interior surface coated with unknown resin-like substance. Disposed per hazmat protocol." },
+      { "timestamp": "2183-03-14T08:45:00Z", "system": "VENT_C3_SOUTH",   "action": "INSPECT", "notes": "Same substance detected. Did not replace — no spares remaining." },
+      { "timestamp": "2183-03-14T09:00:00Z", "system": "VENT_M1_EAST",    "action": "INSPECT", "notes": "Substance present. Duct wider than schematics indicate. Possible structural deformation." },
+      { "timestamp": "2183-03-14T09:10:00Z", "system": "VENT_M1_EAST",    "action": "ABORT",   "notes": "Heard movement inside duct. Sealed vent. Reporting to Verlaine." },
+      { "timestamp": "2183-03-14T09:15:00Z", "system": "MAINTENANCE_LOG", "action": "NOTE",    "notes": "I am not going back in there." }
+    ]
+  }
+}

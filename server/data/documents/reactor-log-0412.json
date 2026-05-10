@@ -1,0 +1,20 @@
+{
+  "id": "reactor-log-0412",
+  "type": "DATA_DUMP",
+  "title": "Reactor Monitoring Log — 04/12",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-14",
+  "author": "MUTHUR 6000",
+  "visible": false,
+  "living": false,
+  "content": {
+    "entries": [
+      { "timestamp": "2183-03-14T00:00:00Z", "system": "REACTOR_CORE", "status": "DEGRADED", "integrity": "40%",   "note": "Stability declining at 0.2%/hour." },
+      { "timestamp": "2183-03-14T01:00:00Z", "system": "REACTOR_CORE", "status": "DEGRADED", "integrity": "39.8%", "note": "" },
+      { "timestamp": "2183-03-14T02:00:00Z", "system": "REACTOR_CORE", "status": "CRITICAL", "integrity": "39.2%", "note": "Rate increased. Unknown cause." },
+      { "timestamp": "2183-03-14T03:00:00Z", "system": "REACTOR_CORE", "status": "CRITICAL", "integrity": "38.1%", "note": "Thermal spike C1. Duration 90s. Cause: biological obstruction in coolant routing (unconfirmed)." },
+      { "timestamp": "2183-03-14T04:00:00Z", "system": "REACTOR_CORE", "status": "CRITICAL", "integrity": "37.0%", "note": "Manual intervention required. All engineering staff non-responsive." }
+    ]
+  }
+}

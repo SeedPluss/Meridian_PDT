@@ -1,0 +1,18 @@
+{
+  "id": "verlaine-hq-email",
+  "type": "EMAIL",
+  "title": "Re: Open Container — Urgent",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-13",
+  "author": "Officer Verlaine",
+  "visible": false,
+  "living": false,
+  "content": {
+    "from": "verlaine@uscss-meridian.corp",
+    "to": "ops@weylandyutani.corp",
+    "cc": "",
+    "subject": "Re: Open Container — URGENT",
+    "body": "W-Y Ops,\n\nXB-71 has been opened. I do not know how or when. The seal was intact at inspection 72 hours ago. Kowalski found the latch disengaged during routine C2 check at 0200.\n\nThe interior environmental controls are still running. The biological sample — I'm assuming it was a biological sample — is not in the container.\n\nI am sealing C2 as per your prior instructions. I am not touching anything.\n\nI need immediate guidance. I have 9 crew on board and no idea what we're dealing with.\n\nWaiting for your response.\n\n— Verlaine\n\n[This message was sent 18 hours before the current timestamp. No response from W-Y on record.]"
+  }
+}

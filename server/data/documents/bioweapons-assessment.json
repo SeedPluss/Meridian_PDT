@@ -1,0 +1,20 @@
+{
+  "id": "bioweapons-assessment",
+  "type": "DATA_DUMP",
+  "title": "Bioweapons Viability Assessment XB-71",
+  "level": 3,
+  "classification": "CLASSIFIED",
+  "date": "2183-01-15",
+  "author": "W-Y Science Division",
+  "visible": false,
+  "living": false,
+  "content": {
+    "entries": [
+      { "timestamp": "2183-01-15T00:00:00Z", "system": "SPECIMEN_XB71",    "status": "VIABLE",    "value": "N/A",    "note": "Specimen demonstrates rapid lifecycle progression. Estimated gestation to adult: 4-6 hours under standard conditions." },
+      { "timestamp": "2183-01-15T00:01:00Z", "system": "ACID_HEMOLYMPH",   "status": "CONFIRMED", "value": "pH 0.1", "note": "Hemolymph is molecular acid. Hull-penetrating capability confirmed in lab conditions." },
+      { "timestamp": "2183-01-15T00:02:00Z", "system": "HOST_INTEGRATION",  "status": "CONFIRMED", "value": "N/A",   "note": "Organism uses viable mammalian hosts for juvenile stage. Host does not survive emergence." },
+      { "timestamp": "2183-01-15T00:03:00Z", "system": "WEAPONIZATION",    "status": "POTENTIAL", "value": "HIGH",   "note": "As bioweapon: uncontrolled lethality. Recommend live specimen study before any deployment consideration." },
+      { "timestamp": "2183-01-15T00:04:00Z", "system": "CONTAINMENT",      "status": "WARNING",   "value": "N/A",   "note": "Standard containers insufficient after juvenile stage. Adult specimens can breach any known shipboard containment." }
+    ]
+  }
+}

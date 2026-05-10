@@ -1,0 +1,14 @@
+{
+  "id": "cargo-manifest-2183",
+  "type": "TEXT_LOG",
+  "title": "Cargo Manifest — USCSS Meridian",
+  "level": 1,
+  "classification": "UNCLASSIFIED",
+  "date": "2183-03-01",
+  "author": "Automated Inventory System",
+  "visible": true,
+  "living": false,
+  "content": {
+    "body": "USCSS MERIDIAN — MANIFEST REF: MRD-2183-441\n\nBAY C2 — PRIMARY CARGO\n  - Seegson Synthetic Resin (Industrial Grade) .................. 14,200 kg\n  - Mineral Core Samples — Sigma Draconis IV ................... 3,400 kg\n  - Weyland-Yutani Hazmat Container XB-71 [RESTRICTED] ......... 1 unit\n  - Mining Equipment (Drill Heads, Replacement) ................ 8,900 kg\n  - Miscellaneous Supplies ..................................... 1,100 kg\n\nBAY C4 — DRONE STORAGE\n  - Seegson Survey Drones (Model D-7) .......................... 12 units\n  - Drone Maintenance Kit ...................................... 2 units\n\nTOTAL DECLARED MASS: 27,600 kg\nDEPARTURE PORT: Sevastopol Station\nDESTINATION: Gateway Station, Sol\nESTIMATED ARRIVAL: 2183-09-14\n\n[MUTHUR NOTE: Container XB-71 weight listed as 0.0 kg — sensor anomaly logged.]"
+  }
+}

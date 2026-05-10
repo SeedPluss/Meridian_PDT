@@ -1,0 +1,19 @@
+{
+  "id": "camera-c3-footage",
+  "type": "VIDEO_LOG",
+  "title": "Camera Log — C3 Mining Floor [GAP DETECTED]",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-12",
+  "author": "MUTHUR 6000",
+  "visible": false,
+  "living": false,
+  "content": {
+    "duration": "06:00:00",
+    "codec": "SEEGSON-MPEG4",
+    "thumbnail_note": "[Frame — Mining floor, normal activity, 20:00]",
+    "transcript_excerpt": "[20:00] Camera feed normal. Refinery floor empty, end of shift.\n[21:14] Kowalski enters for vent inspection. Leaves 21:31.\n[22:00-02:00] [GAP — 4 HOURS — RECORDING ABSENT]\n[02:00] Camera feed resumes. Floor empty.\n[02:04] Kowalski enters. Pauses. Backs against wall. Camera motion noted.\n[02:11] Kowalski exits running.",
+    "integrity": 40,
+    "corruption_note": "4-hour recording gap. MUTHUR cannot confirm cause — power fluctuation or deliberate deletion."
+  }
+}

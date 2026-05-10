@@ -1,0 +1,28 @@
+{
+  "id": "verlaine-final-log",
+  "type": "AUDIO_TRANSCRIPT",
+  "title": "Personal Log — Officer Verlaine [FINAL]",
+  "level": 3,
+  "classification": "RESTRICTED",
+  "date": "2183-03-14",
+  "author": "Officer Verlaine",
+  "visible": false,
+  "living": false,
+  "content": {
+    "duration": "00:04:51",
+    "audio_quality": "POOR",
+    "lines": [
+      { "ts": "00:00:02", "speaker": "Verlaine", "text": "[Breathing heavily] This is Officer Verlaine. Personal log. I don't know the date. MUTHUR's clock is wrong." },
+      { "ts": "00:00:18", "speaker": "Verlaine", "text": "I'm in Engineering. C1. The doors are jammed — I did it on purpose. I don't think that'll hold." },
+      { "ts": "00:00:34", "speaker": "Verlaine", "text": "I have to say it out loud so someone knows. W-Y knew. They knew what was in that container. We were the delivery vehicle." },
+      { "ts": "00:01:02", "speaker": "Verlaine", "text": "Chen is gone. Security is gone. I don't know about Kowalski. I haven't heard anyone else in... I don't know how long." },
+      { "ts": "00:01:44", "speaker": "Verlaine", "text": "The thing — it's not stupid. It learns. It figured out the vents in the first day. It figured out the lights by the third." },
+      { "ts": "00:02:31", "speaker": "Verlaine", "text": "I'm sending everything I have to MUTHUR's buffer. The logs. The W-Y emails. Everything. Someone has to know." },
+      { "ts": "00:03:12", "speaker": "Verlaine", "text": "[Long pause] If you're a crew member and you're hearing this — don't go to B3. Don't go to C2. And don't trust W-Y. Not even a little." },
+      { "ts": "00:03:58", "speaker": "Verlaine", "text": "[Sound: impact against door — three times, heavy]" },
+      { "ts": "00:04:05", "speaker": "Verlaine", "text": "Oh no. Oh no oh no—" },
+      { "ts": "00:04:09", "speaker": "UNKNOWN", "text": "[SCREAMING]" },
+      { "ts": "00:04:51", "speaker": "MUTHUR", "text": "[Recording ends]" }
+    ]
+  }
+}

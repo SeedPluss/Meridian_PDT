@@ -1,0 +1,25 @@
+{
+  "id": "audio-corridor-b2",
+  "type": "AUDIO_TRANSCRIPT",
+  "title": "Audio Recovery — Corridor B2",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-13",
+  "author": "MUTHUR 6000",
+  "visible": false,
+  "living": false,
+  "content": {
+    "duration": "00:02:17",
+    "audio_quality": "DEGRADED",
+    "lines": [
+      { "ts": "00:00:03", "speaker": "UNKNOWN", "text": "[Sound: footsteps, fast]" },
+      { "ts": "00:00:11", "speaker": "Chen", "text": "Hello? Is someone there?" },
+      { "ts": "00:00:19", "speaker": "UNKNOWN", "text": "[Sound: wet, rhythmic — close proximity]" },
+      { "ts": "00:00:22", "speaker": "Chen", "text": "Oh god. Oh god what—" },
+      { "ts": "00:00:25", "speaker": "UNKNOWN", "text": "[Unidentified vocalization — non-human]" },
+      { "ts": "00:00:27", "speaker": "Chen", "text": "[SCREAMING — 14 seconds]" },
+      { "ts": "00:00:42", "speaker": "MUTHUR", "text": "[Audio feed interrupted]" },
+      { "ts": "00:02:17", "speaker": "MUTHUR", "text": "[End of recoverable audio]" }
+    ]
+  }
+}

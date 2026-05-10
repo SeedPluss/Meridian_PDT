@@ -1,0 +1,20 @@
+{
+  "id": "ls-telemetry-anomalies",
+  "type": "DATA_DUMP",
+  "title": "Life Support Telemetry — Anomaly Log",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-13",
+  "author": "MUTHUR 6000",
+  "visible": false,
+  "living": false,
+  "content": {
+    "entries": [
+      { "timestamp": "2183-03-06T03:14:00Z", "system": "LS_O2_SENSOR", "sector": "C3", "value": "18.1%", "baseline": "21.0%", "note": "O2 drop. Duration 4 min. Cause: UNKNOWN." },
+      { "timestamp": "2183-03-08T03:02:00Z", "system": "LS_O2_SENSOR", "sector": "C3", "value": "17.8%", "baseline": "21.0%", "note": "Recurrence. Duration 7 min." },
+      { "timestamp": "2183-03-09T18:45:00Z", "system": "LS_TEMP",      "sector": "M1", "value": "29.4C", "baseline": "22.0C", "note": "Elevated heat in tunnel M1. Source not found." },
+      { "timestamp": "2183-03-11T03:01:00Z", "system": "LS_O2_SENSOR", "sector": "C3", "value": "16.2%", "baseline": "21.0%", "note": "Significant drop. Duration 12 min. Crew sleeping — no alert issued per standing order." },
+      { "timestamp": "2183-03-13T02:58:00Z", "system": "LS_O2_SENSOR", "sector": "C3", "value": "14.1%", "baseline": "21.0%", "note": "CRITICAL. Duration 3 min then sensor offline. Sensor replaced 03:30." }
+    ]
+  }
+}

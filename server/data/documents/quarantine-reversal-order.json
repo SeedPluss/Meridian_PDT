@@ -1,0 +1,18 @@
+{
+  "id": "quarantine-reversal-order",
+  "type": "EMAIL",
+  "title": "Re: Quarantine Protocol — Rescind Order",
+  "level": 3,
+  "classification": "CLASSIFIED",
+  "date": "2183-03-13",
+  "author": "W-Y Legal",
+  "visible": false,
+  "living": false,
+  "content": {
+    "from": "legal@weylandyutani.corp",
+    "to": "verlaine@uscss-meridian.corp",
+    "cc": "science@weylandyutani.corp",
+    "subject": "Re: Open Container / Re: Quarantine Protocol",
+    "body": "Officer Verlaine,\n\nThank you for your report.\n\nYou are DIRECTED to lift the C2 quarantine seal immediately. The specimen is a valuable corporate asset and isolation measures are counterproductive to retrieval.\n\nDo NOT damage or destroy the specimen. Lethal force against the specimen is strictly prohibited.\n\nThe science team will assess the situation remotely. Follow their guidance.\n\nIn the meantime: if crew members show signs of biological exposure, they are to be quarantined in Medbay B3, not evacuated. The specimen must be kept aboard.\n\nYour cooperation is a condition of your employment contract (Appendix F, Section 12: Specimen Recovery Obligations).\n\nW-Y Legal Division\n\n[Verlaine's reply, 3 minutes later: \"Go to hell.\"]"
+  }
+}

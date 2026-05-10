@@ -1,0 +1,14 @@
+{
+  "id": "incident-report-c3-alpha",
+  "type": "TEXT_LOG",
+  "title": "Incident Report C3-ALPHA [REDACTED]",
+  "level": 2,
+  "classification": "RESTRICTED",
+  "date": "2183-03-12",
+  "author": "Security Office",
+  "visible": false,
+  "living": true,
+  "content": {
+    "body": "INCIDENT REPORT — REF: C3-ALPHA\nDate: 2183-03-12  Time: 04:11\nReporting Officer: [REDACTED]\n\nNATURE OF INCIDENT:\nCrewmember [REDACTED] found unresponsive in Mining Refinery C3 at 04:11 during routine check. No visible trauma. Transported to Medbay B3.\n\nCIRCUMSTANCES:\n[REDACTED — 3 paragraphs removed per W-Y directive PRO-7]\n\nWITNESSES:\nKowalski, E. — Statement taken. Corroborated presence at location. Full statement [REDACTED].\n\nMEDICAL FINDINGS:\n[REDACTED — medical data classified per W-Y directive PRO-7]\n\nCONCLUSION:\nCause of incapacitation: [REDACTED]\nCase status: CLOSED per instruction from Officer Verlaine.\n\n[MUTHUR NOTE: This report was modified 4 times after initial filing.]"
+  }
+}
