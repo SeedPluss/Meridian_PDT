@@ -30,7 +30,7 @@ const inputStyle = {
   caretColor: '#00ff66',
 };
 
-const LoginScreen = ({ onLogin }) => {
+const LoginScreen = ({ onAuthRequest, onLoginConfirm, authError, authCharacter }) => {
   const [phase,    setPhase]    = React.useState('creds'); // 'creds'|'loading'|'profile'
   const [usuario,  setUsuario]  = React.useState('');
   const [senha,    setSenha]    = React.useState('');
@@ -52,13 +52,27 @@ const LoginScreen = ({ onLogin }) => {
     return () => clearInterval(iv);
   }, [phase]);
 
+  React.useEffect(() => {
+    if (authError && phase === 'waiting') {
+      setErrMsg(authError);
+      setPhase('creds');
+    }
+  }, [authError]);
+
+  React.useEffect(() => {
+    if (authCharacter && phase === 'waiting') {
+      setCharacter(authCharacter);
+      setLoadPct(0); setLoadMsgI(0); setPhase('loading');
+    }
+  }, [authCharacter]);
+
   const handleLogin = () => {
-    const char = LOGIN_CHARS.find(c => c.u === usuario.trim().toLowerCase() && c.p === senha);
-    if (!char) { setErrMsg('CREDENCIAIS INVÁLIDAS — TENTE NOVAMENTE'); return; }
-    setErrMsg(''); setCharacter(char); setLoadPct(0); setLoadMsgI(0); setPhase('loading');
+    setErrMsg('');
+    setPhase('waiting');
+    onAuthRequest(usuario.trim().toLowerCase(), senha);
   };
 
-  const handleKeyDown = (e) => { if (e.key === 'Enter') handleLogin(); };
+  const handleKeyDown = (e) => { if (e.key === 'Enter' && phase !== 'waiting') handleLogin(); };
 
   // ── Prog bar text ──────────────────────────────────
   const bar = (pct) => {
@@ -117,7 +131,9 @@ const LoginScreen = ({ onLogin }) => {
       )}
 
       <div style={{ marginTop:'28px', width:'100%' }}>
-        <PDTButton variant="bright" onClick={handleLogin} fullWidth>[ ACESSAR ]</PDTButton>
+        <PDTButton variant="bright" onClick={handleLogin} fullWidth disabled={phase === 'waiting'}>
+          {phase === 'waiting' ? '[ AUTENTICANDO... ]' : '[ ACESSAR ]'}
+        </PDTButton>
       </div>
 
       {/* Demo hint */}
@@ -130,7 +146,7 @@ const LoginScreen = ({ onLogin }) => {
   // ─────────────────────────────────────────────────────
   // PHASE: LOADING
   // ─────────────────────────────────────────────────────
-  if (phase === 'loading') return (
+  if (phase === 'loading' || phase === 'waiting') return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 24px', gap:'16px' }}>
       <div style={{ ...vt(22, C.bright), textShadow: glow(C.bright) }}>
         {LOAD_MSGS[loadMsgI]}
@@ -186,7 +202,7 @@ const LoginScreen = ({ onLogin }) => {
       </div>
 
       <div style={{ padding:'12px 16px', borderTop:`1px solid ${C.dim}`, flexShrink:0 }}>
-        <PDTButton variant="bright" fullWidth onClick={() => onLogin(character)}>
+        <PDTButton variant="bright" fullWidth onClick={() => onLoginConfirm(character)}>
           [ INICIAR MISSÃO ]
         </PDTButton>
       </div>

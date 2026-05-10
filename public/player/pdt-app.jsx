@@ -66,6 +66,8 @@ const App = () => {
   // Auth
   const [loggedIn,   setLoggedIn]   = React.useState(false);
   const [character,  setCharacter]  = React.useState(null);
+  const [authError,  setAuthError]  = React.useState(null);
+  const [authCharacter, setAuthCharacter] = React.useState(null);
   const isAndroid = character?.isAndroid || false;
 
   // Navigation
@@ -104,11 +106,9 @@ const App = () => {
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'LOGIN_OK') {
-        setCharacter(data.character);
-        setLoggedIn(true);
-        setActiveTab('tracker');
+        setAuthCharacter(data.character);
       } else if (data.type === 'LOGIN_ERR') {
-        alert(data.msg);
+        setAuthError(data.msg);
       } else if (data.type === 'TRACKER_UPDATE') {
         setBlips(data.blips);
         setTrackerState(data.blips.length > 0 ? 'threat' : 'clean');
@@ -150,11 +150,19 @@ const App = () => {
     (activeTab === 'docs' && docsState === 'reading') ||
     (activeTab === 'sys'  && ['briefing','minigame','success','failure'].includes(sysState));
 
-  const handleLogin = (user, pass) => { 
+  const handleAuthRequest = (user, pass) => { 
+    setAuthError(null);
     if(ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'LOGIN', username: user, password: pass }));
     }
   };
+
+  const handleLoginConfirm = (char) => {
+    setCharacter(char);
+    setLoggedIn(true);
+    setActiveTab('tracker');
+  };
+
   const goToSys     = () => { setActiveTab('sys'); setSysState('list'); };
 
   const handleTabChange = (tab) => {
@@ -177,7 +185,7 @@ const App = () => {
   };
 
   const renderContent = () => {
-    if (!loggedIn) return <LoginScreen onLogin={handleLogin} />;
+    if (!loggedIn) return <LoginScreen onAuthRequest={handleAuthRequest} onLoginConfirm={handleLoginConfirm} authError={authError} authCharacter={authCharacter} />;
     if (lockedTab && activeTab === lockedTab) return <LockedScreen tabName={activeTab} />;
     switch (activeTab) {
       case 'tracker': return <TrackerScreen trackerState={trackerState} goToSys={goToSys} />;
