@@ -57,14 +57,14 @@ const LoginScreen = ({ onAuthRequest, onLoginConfirm, authError, authCharacter }
       setErrMsg(authError);
       setPhase('creds');
     }
-  }, [authError]);
+  }, [authError, phase]);
 
   React.useEffect(() => {
     if (authCharacter && phase === 'waiting') {
       setCharacter(authCharacter);
       setLoadPct(0); setLoadMsgI(0); setPhase('loading');
     }
-  }, [authCharacter]);
+  }, [authCharacter, phase]);
 
   const handleLogin = () => {
     setErrMsg('');
