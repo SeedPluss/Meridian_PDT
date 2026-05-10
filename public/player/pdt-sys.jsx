@@ -126,6 +126,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
       )}
     </div>
   </div>
+  );
 };
 
 // ── SysBriefing ────────────────────────────────────────────────────────────────
