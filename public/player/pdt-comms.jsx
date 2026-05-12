@@ -1,15 +1,5 @@
 // pdt-comms.jsx — Communications screen + frequency lock system
 
-const DEMO_MESSAGES = [
-  { time:'10:23', sender:'RODRIGUEZ', text:'tracker limpo aqui no B2', type:'crew' },
-  { time:'10:24', sender:'KOWALSKI',  text:'confirmado. seguindo protocolo', type:'crew' },
-  { time:'10:25', sender:'VOCÊ',      text:'indo pro C2 checar sistemas', type:'self' },
-  { time:'10:28', sender:'SYSTEM',    text:'Novo documento desbloqueado:\nLog MT-0934', type:'system' },
-  { time:'10:31', sender:'M.O.T.H.E.R', text:'Variação térmica detectada nível -3. Registrando.', type:'mother' },
-  { time:'10:33', sender:'CHEN',      text:'alguém verificou o medbay?', type:'crew' },
-  { time:'10:35', sender:'RODRIGUEZ', text:'negativo. priorizando B3', type:'crew' },
-];
-
 const msgColor     = t => ({ system:C.amber, mother:C.cyan, self:C.bright, crew:C.main }[t] || C.main);
 const msgNameColor = t => ({ system:C.amber, mother:C.cyan, self:C.bright, crew:C.mid  }[t] || C.mid);
 
@@ -109,17 +99,23 @@ const WYChannel = () => {
 
 // ── CommsScreen ────────────────────────────────────────────────────────────────
 
-const CommsScreen = ({ commsState, isAndroid }) => {
+const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked = false, onSendMessage, onFrequencySubmit, onRead }) => {
   const [channel,    setChannel]    = React.useState('GERAL');
-  const [freqLocked, setFreqLocked] = React.useState(true);  // channel starts locked
-  const [frequency,  setFrequency]  = React.useState(null);
+  const [inputText,  setInputText]  = React.useState('');
   const msgEndRef = React.useRef(null);
 
   React.useEffect(() => {
     if (msgEndRef.current) msgEndRef.current.scrollTop = msgEndRef.current.scrollHeight;
-  }, [channel]);
+    if (onRead && unread > 0) onRead();
+  }, [channel, history, unread, onRead]);
 
   const CHANNELS = isAndroid ? ['GERAL', 'B1', 'W-Y'] : ['GERAL', 'B1'];
+
+  const handleSend = () => {
+    if (!inputText.trim()) return;
+    if (onSendMessage) onSendMessage(inputText.trim(), channel);
+    setInputText('');
+  };
 
   // ── Offline ──────────────────────────────────────
   if (commsState === 'offline') return (
@@ -162,7 +158,7 @@ const CommsScreen = ({ commsState, isAndroid }) => {
   );
 
   // ── Frequency locked ──────────────────────────────
-  if (channel !== 'GERAL' && freqLocked) return (
+  if (channel !== 'GERAL' && !unlocked && channel !== 'W-Y') return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px', flexShrink:0 }}>
         <span style={vt(20,C.main)}>COMMS</span>
@@ -177,7 +173,7 @@ const CommsScreen = ({ commsState, isAndroid }) => {
         </div>
       </div>
       <HRule />
-      <FrequencyUnlock onUnlock={(f) => { setFrequency(f); setFreqLocked(false); }} />
+      <FrequencyUnlock onUnlock={(f) => { if(onFrequencySubmit) onFrequencySubmit(f); }} />
     </div>
   );
 
@@ -187,8 +183,8 @@ const CommsScreen = ({ commsState, isAndroid }) => {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px', flexShrink:0 }}>
         <span style={vt(20,C.main)}>COMMS</span>
         <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
-          {frequency && channel!=='GERAL' && (
-            <span style={mono(9,C.dim,{opacity:0.6})}>{frequency} MHz</span>
+          {unlocked && channel!=='GERAL' && channel!=='W-Y' && (
+            <span style={mono(9,C.dim,{opacity:0.6})}>SINTONIZADO</span>
           )}
           {CHANNELS.filter(c=>c!=='W-Y').map(ch=>(
             <span key={ch} onClick={()=>setChannel(ch)} style={{
@@ -210,7 +206,10 @@ const CommsScreen = ({ commsState, isAndroid }) => {
 
       {/* Messages */}
       <div ref={msgEndRef} style={{ flex:1, overflowY:'auto', padding:'6px 0', scrollbarWidth:'none' }}>
-        {DEMO_MESSAGES.map((msg,i)=>(
+        {history.length === 0 && (
+           <div style={mono(10,C.dim,{textAlign:'center', marginTop:'20px'})}>Nenhuma mensagem no histórico.</div>
+        )}
+        {history.map((msg,i)=>(
           <div key={i} style={{ padding:'4px 14px', paddingLeft:msg.type==='self'?'26px':'14px',
             borderLeft:msg.type==='self'?`2px solid ${C.dim}`:'none',
             marginLeft:msg.type==='self'?'12px':'0' }}>
@@ -226,10 +225,17 @@ const CommsScreen = ({ commsState, isAndroid }) => {
       <HRule />
       <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', flexShrink:0 }}>
         <span style={vt(22,C.main)}>{'>'}</span>
-        <div style={{ flex:1, ...vt(18,C.main), display:'flex', alignItems:'center', minHeight:'32px' }}>
-          <Cursor />
+        <div style={{ flex:1, display:'flex', alignItems:'center', minHeight:'32px' }}>
+          <input 
+            type="text" 
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="MENSAGEM..."
+            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:C.main, fontFamily:"'VT323', monospace", fontSize:'18px', caretColor:C.bright }}
+          />
         </div>
-        <button style={{ ...vt(16,C.main), background:'transparent', border:`1px solid ${C.main}`,
+        <button onClick={handleSend} style={{ ...vt(16,C.main), background:'transparent', border:`1px solid ${C.main}`,
           padding:'8px 14px', cursor:'pointer', minHeight:'44px' }}>ENVIAR</button>
       </div>
     </div>

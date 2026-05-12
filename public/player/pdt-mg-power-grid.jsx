@@ -30,8 +30,12 @@ const SOLUTION = new Set(['S1-A','A-D1','A-B','B-D2','S2-C','C-D3','S1-D4']);
 const edgeKey = (a,b) => [a,b].sort().join('-');
 const nodeById = id => NODES.find(n=>n.id===id);
 
-const MinigamePowerGrid = ({ onSuccess, onFailure }) => {
-  const [active,  setActive]  = React.useState(new Set()); // active edge keys
+const MinigamePowerGrid = ({ onSuccess, onFailure, difficultyLevel = 1 }) => {
+  const [active,  setActive]  = React.useState(() => {
+    // Difficulty 3 (Expert) starts with some edges pre-connected
+    if (difficultyLevel === 3) return new Set(['S1-A', 'S2-C', 'S1-D4']);
+    return new Set();
+  }); 
   const [selNode, setSelNode]  = React.useState(null);
   const [timer,   setTimer]   = React.useState(75);
   const [checked, setChecked] = React.useState(false);
@@ -140,7 +144,12 @@ const MinigamePowerGrid = ({ onSuccess, onFailure }) => {
                   stroke={on ? (over?C.red:C.bright) : C.ghost}
                   strokeWidth={on?3:1.5}
                   strokeDasharray={on?'none':'4,4'}
-                  style={{ filter: on&&!over?`drop-shadow(0 0 4px ${C.bright})`:'none', cursor:'pointer' }}
+                  style={{ 
+                    filter: (on && !over) ? `drop-shadow(0 0 4px ${C.bright})` : 
+                           (difficultyLevel >= 2 && SOLUTION.has(key)) ? `drop-shadow(0 0 8px ${C.main})` : 'none', 
+                    cursor:'pointer',
+                    opacity: (difficultyLevel >= 2 && !on && SOLUTION.has(key)) ? 0.6 : 1
+                  }}
                   onClick={() => {
                     // Allow clicking edge to toggle
                     const next = new Set(active);
@@ -164,7 +173,7 @@ const MinigamePowerGrid = ({ onSuccess, onFailure }) => {
                   fill={over?C.red:C.amber}
                   fontSize="10" textAnchor="middle"
                   fontFamily="Share Tech Mono">
-                  50/{cap}
+                  {difficultyLevel > 0 ? `50/${cap}` : '??'}
                 </text>
               );
             })}
@@ -188,7 +197,7 @@ const MinigamePowerGrid = ({ onSuccess, onFailure }) => {
                   {n.type==='dest' && (
                     <text x={n.x} y={n.y+30} fill={C.dim} fontSize="9"
                       textAnchor="middle" fontFamily="Share Tech Mono">
-                      {n.need}kW
+                      {difficultyLevel > 0 ? `${n.need}kW` : '??kW'}
                     </text>
                   )}
                 </g>

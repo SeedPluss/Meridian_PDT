@@ -18,7 +18,7 @@ const GAUGE_DEFS = [
 
 const genSeq = (len) => Array.from({length:len},()=>REACTOR_BTNS[Math.floor(Math.random()*REACTOR_BTNS.length)].id);
 
-const MinigameReactor = ({ onSuccess, onFailure }) => {
+const MinigameReactor = ({ onSuccess, onFailure, difficultyLevel = 1 }) => {
   const [phase,      setPhase]      = React.useState('genius');
   const [round,      setRound]      = React.useState(0);           // sequence length = 4 + round
   const [sequence,   setSequence]   = React.useState([]);
@@ -60,8 +60,7 @@ const MinigameReactor = ({ onSuccess, onFailure }) => {
   }, [phase, round]);
 
   const handleBtnPress = (id) => {
-    if (showing >= -1 && showing < sequence.length - 1) return; // still showing
-    if (showing === -2) return;
+    if (showing !== -1) return; // return if still showing sequence
     const next = [...playerSeq, id];
     setLitBtn(id);
     setTimeout(() => setLitBtn(null), 200);
@@ -79,7 +78,8 @@ const MinigameReactor = ({ onSuccess, onFailure }) => {
     setPlayerSeq(next);
     if (next.length >= sequence.length) {
       // round complete
-      if (round >= 2) { // 3 rounds (0,1,2) then gauge phase
+      const maxRounds = difficultyLevel === 3 ? 1 : (difficultyLevel === 2 ? 2 : 3);
+      if (round >= maxRounds - 1) { 
         setTimeout(() => { setPhase('gauges'); }, 600);
       } else {
         setTimeout(() => setRound(r => r + 1), 600);
@@ -183,13 +183,31 @@ const MinigameReactor = ({ onSuccess, onFailure }) => {
               {showing === -2 ? 'OBSERVE A SEQUÊNCIA...' : showing === -1 ? 'REPRODUZA A SEQUÊNCIA:' : ''}
             </div>
             {/* Progress indicators */}
-            <div style={{ display:'flex', gap:'6px', height:'8px' }}>
-              {sequence.map((_,i)=>(
-                <div key={i} style={{ flex:1, height:'8px',
-                  background: i<playerSeq.length?C.bright:i===playerSeq.length?C.dim:C.ghost,
-                  boxShadow: i<playerSeq.length?`0 0 4px ${C.bright}`:'none',
-                }}/>
-              ))}
+            <div style={{ display:'flex', gap:'6px', height:'16px', alignItems:'center' }}>
+              {sequence.map((id, i) => {
+                const isCurrent = i === playerSeq.length;
+                const isPast = i < playerSeq.length;
+                
+                // Difficulty rules for history
+                let showHint = false;
+                if (difficultyLevel === 0) showHint = false; // Never show
+                else if (difficultyLevel === 1) showHint = isPast; // Show all past
+                else if (difficultyLevel === 2) showHint = (i === playerSeq.length - 1); // Only last one
+                else if (difficultyLevel === 3) showHint = (i >= playerSeq.length - 2 && i < playerSeq.length); // Last two
+                
+                return (
+                  <div key={i} style={{ 
+                    flex:1, height:isCurrent?'12px':'8px',
+                    background: isPast ? C.bright : (isCurrent ? C.dim : C.ghost),
+                    boxShadow: isPast ? `0 0 4px ${C.bright}` : 'none',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    border: isCurrent ? `1px solid ${C.bright}` : 'none',
+                    transition: 'all 0.2s'
+                  }}>
+                    {showHint && <span style={{ fontSize:'9px', color:C.black, fontWeight:'bold' }}>{id[0]}</span>}
+                  </div>
+                );
+              })}
             </div>
             {/* 5-button layout */}
             <div style={{ position:'relative', height:'220px', margin:'0 auto', width:'220px' }}>

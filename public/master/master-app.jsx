@@ -43,9 +43,13 @@ const SECTOR_GRID  = [
 
 // ── TAB: JOGADORES ────────────────────────────────────────────────────────────
 
-const TabJogadores = ({ players, setPlayers }) => {
-  const adj = (id, delta) => setPlayers(ps => ps.map(p => p.id===id ? {...p, stress:Math.max(0,Math.min(p.maxS,p.stress+delta))} : p));
-  const move = (id, sec) => setPlayers(ps => ps.map(p => p.id===id ? {...p, sector:sec} : p));
+const TabJogadores = ({ players, onCommand }) => {
+  const adj = (id, delta) => {
+    if (onCommand) onCommand({ type: 'MASTER_ADJ_STRESS', targetPlayerId: id, delta });
+  };
+  const move = (id, sec) => {
+    if (onCommand) onCommand({ type: 'MASTER_MOVE_PLAYER', targetPlayerId: id, sector: sec });
+  };
   return (
     <div style={{flex:1,overflowY:'auto',scrollbarWidth:'thin'}}>
       <table style={{width:'100%', borderCollapse:'collapse', ...mo(12,MC.main)}}>
@@ -100,14 +104,15 @@ const TabJogadores = ({ players, setPlayers }) => {
 
 // ── TAB: TRACKER ─────────────────────────────────────────────────────────────
 
-const TabTracker = ({ players, organism, setOrganism, scavengers, setScavengers }) => {
-  const playerSectors = players.reduce((acc,p)=>({...acc,[p.sector]:(acc[p.sector]||[])+[p.name[0]]}),{});
+const TabTracker = ({ players, organism, scavengers, onCommand, setOrganism }) => {
+  const playerSectors = players.reduce((acc,p)=>({...acc,[p.sector]:[...(acc[p.sector]||[]), p.name[0]]}),{});
 
   const triggerHunt = (playerId) => {
-    const p = players.find(pl=>pl.id===playerId);
-    if (!p) return;
-    setOrganism(o=>({...o, sector:p.sector, mode:'HUNT', target:p.name}));
-    setTimeout(()=>setOrganism(o=>({...o, mode:'PATRULHA'})), 120000);
+    if (onCommand) onCommand({ type: 'MASTER_XENO_HUNT', targetPlayerId: playerId });
+  };
+
+  const moveOrganism = (sec) => {
+    if (onCommand) onCommand({ type: 'MASTER_MOVE_ORGANISM', sector: sec });
   };
 
   return (
@@ -126,7 +131,7 @@ const TabTracker = ({ players, organism, setOrganism, scavengers, setScavengers 
                 const sHere  = scavengers.filter(s=>s.alive&&s.sector===sec);
                 return (
                   <div key={sec}
-                    onClick={()=>!isMez&&setOrganism(o=>({...o,sector:sec}))}
+                    onClick={()=>!isMez&&moveOrganism(sec)}
                     style={{
                       flex: isMez?3:1, border:`1px solid ${hasOrg?MC.red:MC.dim}`,
                       background: hasOrg?'#1a0000':MC.ghost,
@@ -197,7 +202,7 @@ const TabTracker = ({ players, organism, setOrganism, scavengers, setScavengers 
               </div>
               <div style={{display:'flex', gap:'5px', alignItems:'center'}}>
                 <span style={vt(14, s.alive?MC.bright:MC.dim)}>{s.alive?'◆':'◇'}</span>
-                {s.alive && <Btn col={MC.red} sz={12} onClick={()=>setScavengers(sc=>sc.map(x=>x.id===s.id?{...x,alive:false}:x))}>MATAR</Btn>}
+                {s.alive && <Btn col={MC.red} sz={12} onClick={()=>onCommand({ type: 'MASTER_KILL_SCAVENGER', scavengerId: s.id })}>MATAR</Btn>}
               </div>
             </div>
           ))}
@@ -240,18 +245,13 @@ const BATCH_EVENTS = [
   { label:'ORGANISMO CONFIRMADO',     docs:['MT-0934'],  players:'todos' },
 ];
 
-const TabDocs = ({ players }) => {
-  const [unlocked, setUnlocked] = React.useState({});
-
+const TabDocs = ({ players, unlockedDocs, onCommand }) => {
   const unlock = (docId, playerId) => {
-    const key = `${docId}-${playerId}`;
-    setUnlocked(u => ({...u, [key]: true}));
+    if (onCommand) onCommand({ type: 'MASTER_UNLOCK_DOC', documentId: docId, targetPlayerId: playerId });
   };
 
   const unlockAll = (docId) => {
-    const next = {...unlocked};
-    players.forEach(p => { next[`${docId}-${p.id}`] = true; });
-    setUnlocked(next);
+    if (onCommand) onCommand({ type: 'MASTER_UNLOCK_DOC', documentId: docId, targetPlayerId: 'TODOS' });
   };
 
   return (
@@ -290,7 +290,7 @@ const TabDocs = ({ players }) => {
                 <td style={{padding:'8px 10px'}}>
                   <div style={{display:'flex', flexWrap:'wrap', gap:'5px'}}>
                     {players.map(p=>{
-                      const done = unlocked[`${doc.id}-${p.id}`];
+                      const done = unlockedDocs.includes(doc.id);
                       return (
                         <Btn key={p.id} col={done?MC.bright:MC.main} sz={13}
                           onClick={()=>!done&&unlock(doc.id,p.id)}
@@ -313,7 +313,7 @@ const TabDocs = ({ players }) => {
 
 // ── TAB: MSG ──────────────────────────────────────────────────────────────────
 
-const TabMsg = ({ players }) => {
+const TabMsg = ({ players, onCommand }) => {
   const [dest,    setDest]    = React.useState('todos');
   const [voice,   setVoice]   = React.useState('seegson');
   const [text,    setText]    = React.useState('');
@@ -324,7 +324,14 @@ const TabMsg = ({ players }) => {
   const send = (type) => {
     if (!text.trim() && type!=='note') return;
     if (!noteText.trim() && type==='note') return;
-    setSent(s=>[...s, { type, dest, voice, text: type==='note'?noteText:text, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }]);
+    
+    if (type === 'mother') {
+      onCommand({ type: 'MASTER_SEND_MOTHER', targetPlayerId: dest, voice, text });
+    } else {
+      onCommand({ type: 'MASTER_SEND_SECRET', targetPlayerId: noteDest, text: noteText });
+    }
+
+    setSent(s=>[...s, { type, dest: type==='note'?noteDest:dest, voice, text: type==='note'?noteText:text, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }]);
     if (type==='note') setNoteText(''); else setText('');
   };
 
@@ -397,12 +404,37 @@ const TabMsg = ({ players }) => {
 
 // ── TAB: ALERTAS ──────────────────────────────────────────────────────────────
 
-const TabAlertas = ({ players }) => {
+const TabAlertas = ({ players, onCommand }) => {
   const [alertMsg,  setAlertMsg]  = React.useState('');
   const [alertSec,  setAlertSec]  = React.useState('B1');
   const [cdText,    setCdText]    = React.useState('AUTODESTRUIÇÃO');
   const [cdMins,    setCdMins]    = React.useState(15);
   const [cdRunning, setCdRunning] = React.useState(false);
+
+  const startAlert = (global) => {
+    onCommand({
+      type: 'MASTER_SEND_MOTHER',
+      targetPlayerId: global ? 'TODOS' : alertSec,
+      voice: 'seegson',
+      text: `ALERTA: ${alertMsg}`
+    });
+    // Also vibrate
+    onCommand({ type: 'MASTER_VIBRATE', targetPlayerId: global ? 'TODOS' : alertSec });
+  };
+
+  const toggleCD = () => {
+    if (!cdRunning) {
+      onCommand({ type: 'MASTER_COUNTDOWN', text: cdText, duration: cdMins * 60, targetPlayerId: 'TODOS' });
+    }
+    setCdRunning(!cdRunning);
+  };
+
+  const runTool = (tool, target) => {
+    if (tool === 'VIBRAÇÃO SILENCIOSA') {
+      onCommand({ type: 'MASTER_VIBRATE', targetPlayerId: target });
+    }
+    // other tools can be added here
+  };
 
   return (
     <div style={{flex:1, overflowY:'auto', scrollbarWidth:'thin', padding:'12px', display:'flex', flexDirection:'column', gap:'14px'}}>
@@ -422,8 +454,8 @@ const TabAlertas = ({ players }) => {
           placeholder="Mensagem do alerta..."
           style={{width:'100%', padding:'6px 8px', marginBottom:'8px', fontSize:'13px', border:`1px solid ${MC.red}`, color:MC.red}} />
         <div style={{display:'flex', gap:'8px'}}>
-          <Btn col={MC.red} sz={15} style={{flex:1}}>[ DISPARAR SETOR {alertSec} ]</Btn>
-          <Btn col={MC.red} sz={15} style={{flex:1}}>[ DISPARAR GLOBAL ]</Btn>
+          <Btn col={MC.red} sz={15} style={{flex:1}} onClick={()=>startAlert(false)}>[ DISPARAR SETOR {alertSec} ]</Btn>
+          <Btn col={MC.red} sz={15} style={{flex:1}} onClick={()=>startAlert(true)}>[ DISPARAR GLOBAL ]</Btn>
         </div>
       </div>
 
@@ -443,7 +475,7 @@ const TabAlertas = ({ players }) => {
               style={{width:'60px', padding:'4px 6px', fontSize:'13px'}}/>
           </div>
         </div>
-        <Btn col={cdRunning?MC.dim:MC.amber} sz={15} onClick={()=>setCdRunning(r=>!r)} style={{width:'100%'}}>
+        <Btn col={cdRunning?MC.dim:MC.amber} sz={15} onClick={toggleCD} style={{width:'100%'}}>
           {cdRunning?'[ PARAR COUNTDOWN ]':'[ INICIAR COUNTDOWN ]'}
         </Btn>
       </div>
@@ -466,11 +498,14 @@ const TabAlertas = ({ players }) => {
               <div style={mo(9,MC.dim)}>{tool.desc}</div>
             </div>
             <div style={{display:'flex', gap:'6px', alignItems:'center'}}>
-              <select style={{padding:'3px 5px', fontSize:'11px', minWidth:'80px'}}>
-                <option>Selecionar</option>
-                {players.map(p=><option key={p.id}>{p.name}</option>)}
+              <select id={`tool-target-${tool.label}`} style={{padding:'3px 5px', fontSize:'11px', minWidth:'80px'}}>
+                <option value="TODOS">TODOS</option>
+                {players.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
-              <Btn col={MC.amber} sz={13}>EXECUTAR</Btn>
+              <Btn col={MC.amber} sz={13} onClick={() => {
+                const target = document.getElementById(`tool-target-${tool.label}`).value;
+                runTool(tool.label, target);
+              }}>EXECUTAR</Btn>
             </div>
           </div>
         ))}
@@ -493,12 +528,12 @@ const MASTER_SYSTEMS = [
   { id:'tracker',     label:'MOTION TRACKER',     sector:'B'   },
 ];
 
-const TabSistemas = ({ players }) => {
-  const [panels, setPanels] = React.useState({});
-
+const TabSistemas = ({ players, unlockedSystems, onCommand }) => {
   const unlock = (sysId, playerId) => {
-    const key = `${sysId}-${playerId}`;
-    setPanels(p=>({...p, [key]:true}));
+    // Find the system object to get its sector
+    const sys = MASTER_SYSTEMS.find(s => s.id === sysId);
+    if (!sys) return;
+    if (onCommand) onCommand({ type: 'MASTER_UNLOCK_SYS', sector: sys.sector, systemId: sysId, targetPlayerId: playerId });
   };
 
   return (
@@ -519,7 +554,7 @@ const TabSistemas = ({ players }) => {
               <td style={{padding:'8px 10px'}}>
                 <div style={{display:'flex', flexWrap:'wrap', gap:'5px'}}>
                   {players.map(p=>{
-                    const done = panels[`${sys.id}-${p.id}`];
+                    const done = unlockedSystems[sys.sector]?.[sys.id];
                     return (
                       <Btn key={p.id} col={done?MC.bright:MC.dim} sz={13}
                         onClick={()=>!done&&unlock(sys.id,p.id)}
@@ -542,23 +577,72 @@ const TabSistemas = ({ players }) => {
 
 const MasterApp = () => {
   const [tab,       setTab]       = React.useState('jogadores');
-  const [players,   setPlayers]   = React.useState(initPlayers);
+  const [players,   setPlayers]   = React.useState([]);
   const [organism,  setOrganism]  = React.useState({
     sector:'C2', mode:'PATRULHA', moving:false, target:null, territory:['C1','C2','C3','MBC'],
   });
-  const [scavengers,setScavengers]= React.useState([
-    {id:1,name:'Linh',   sector:'C3',alive:true},
-    {id:2,name:'Bauer',  sector:'C3',alive:true},
-    {id:3,name:'Nkosi',  sector:'C3',alive:true},
-    {id:4,name:'Yeva',   sector:'C3',alive:true},
-    {id:5,name:'Carver', sector:'B1',alive:true},
-  ]);
-  const [time, setTime] = React.useState('');
+  const [scavengers,setScavengers]= React.useState([]);
+  const [unlockedSystems, setUnlockedSystems] = React.useState({});
+  const [unlockedDocs, setUnlockedDocs]       = React.useState([]);
+  const [time, setTime]                       = React.useState('');
+  const [ws, setWs]                           = React.useState(null);
 
-  React.useEffect(()=>{
+  React.useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(`${protocol}//${window.location.host}`);
+    
+    socket.onopen = () => {
+      console.log('[MASTER] Connected');
+      socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'meridian-master' }));
+    };
+
+    socket.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'FULL_STATE') {
+        const s = msg.state;
+        if (s.players) {
+          // Convert server players object to array for UI
+          const pArray = Object.keys(s.players).map(id => ({
+            id,
+            ...s.players[id]
+          }));
+          setPlayers(pArray);
+        }
+        if (s.organism) {
+          setOrganism({
+            sector: s.organism.currentSector,
+            mode: s.organism.mode.toUpperCase(),
+            moving: s.organism.isMoving,
+            target: s.organism.huntTarget,
+            territory: s.organism.territory
+          });
+        }
+        if (s.scavengers) {
+          setScavengers(s.scavengers.map(sc => ({
+            id: sc.id,
+            name: sc.name,
+            sector: sc.currentSector,
+            alive: sc.alive
+          })));
+        }
+        if (s.unlockedSystems) setUnlockedSystems(s.unlockedSystems);
+        if (s.unlockedDocs)    setUnlockedDocs(s.unlockedDocs);
+      }
+    };
+
+    setWs(socket);
     const iv = setInterval(()=>setTime(new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})),1000);
-    return ()=>clearInterval(iv);
-  },[]);
+    return () => {
+      clearInterval(iv);
+      socket.close();
+    };
+  }, []);
+
+  const sendCmd = (msg) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(msg));
+    }
+  };
 
   const TABS = [
     {id:'jogadores', label:'JOGADORES'},
@@ -605,12 +689,12 @@ const MasterApp = () => {
 
       {/* Content */}
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        {tab==='jogadores' && <TabJogadores players={players} setPlayers={setPlayers} />}
-        {tab==='tracker'   && <TabTracker   players={players} organism={organism} setOrganism={setOrganism} scavengers={scavengers} setScavengers={setScavengers} />}
-        {tab==='docs'      && <TabDocs      players={players} />}
-        {tab==='msg'       && <TabMsg       players={players} />}
-        {tab==='alertas'   && <TabAlertas   players={players} />}
-        {tab==='sistemas'  && <TabSistemas  players={players} />}
+        {tab==='jogadores' && <TabJogadores players={players} onCommand={sendCmd} />}
+        {tab==='tracker'   && <TabTracker   players={players} organism={organism} scavengers={scavengers} onCommand={sendCmd} setOrganism={setOrganism} />}
+        {tab==='docs'      && <TabDocs      players={players} unlockedDocs={unlockedDocs} onCommand={sendCmd} />}
+        {tab==='msg'       && <TabMsg       players={players} onCommand={sendCmd} />}
+        {tab==='alertas'   && <TabAlertas   players={players} onCommand={sendCmd} />}
+        {tab==='sistemas'  && <TabSistemas  players={players} unlockedSystems={unlockedSystems} onCommand={sendCmd} />}
       </div>
     </div>
   );

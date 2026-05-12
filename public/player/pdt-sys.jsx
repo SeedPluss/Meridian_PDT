@@ -52,12 +52,24 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
       return { ...sys, ...shipSystems[sys.id] };
     }
     return sys;
-  });
+  }).filter(sys => sys.detected || sys.panelUnlocked || sys.status === 'online' || sys.online === true);
+
+  // Consider default online systems as visible if we want, but the requirement says "eles são exibidos somente os próximos ao jogadores".
+  // To strictly follow the requirement, we should only show systems explicitly in `shipSystems` sent by the server.
+  // Let's modify the filter to ONLY show systems that the server has told us about, OR if it's explicitly online initially (though server should handle that).
+  const visibleSystems = ALL_SYSTEMS.filter(sys => {
+    const serverSys = shipSystems && shipSystems[sys.id];
+    if (serverSys) {
+      return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online';
+    }
+    // Se o servidor não mandou nada sobre ele, fica oculto.
+    return false;
+  }).map(sys => ({ ...sys, ...shipSystems[sys.id] }));
 
   const bySectorDynamic = SECTOR_ORDER.map(s => ({
     sector: s,
-    systems: mergedSystems.filter(sys => sys.sector === s),
-  }));
+    systems: visibleSystems.filter(sys => sys.sector === s),
+  })).filter(group => group.systems.length > 0);
 
   return (
   <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -71,6 +83,13 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
       </div>
     )}
     <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'none' }}>
+      {bySectorDynamic.length === 0 && (
+        <div style={{ padding: '32px 14px', textAlign: 'center' }}>
+          <div style={vt(20, C.dim)}>NENHUM SISTEMA DETECTADO</div>
+          <div style={mono(11, C.dim, { marginTop: '8px' })}>SISTEMAS PRÓXIMOS APARECERÃO AQUI<br/>CONFORME VOCÊ EXPLORA OS SETORES.</div>
+        </div>
+      )}
+
       {bySectorDynamic.map(({ sector, systems }) => (
         <React.Fragment key={sector}>
           <SectorLabel color={C.dim}>{sector}</SectorLabel>
@@ -80,21 +99,21 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
               display:'flex', flexDirection:'column', gap:'6px',
             }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'6px' }}>
-                <span style={{ ...vt(18, sys.online?C.main:sys.repairing?C.amber:sys.locked?C.dim:C.dim),
+                <span style={{ ...vt(18, (sys.status === 'online' || sys.online)?C.main:sys.repairing?C.amber:(!sys.panelUnlocked && sys.locked)?C.dim:C.dim),
                   flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {sys.label}
                 </span>
-                <span style={{ ...vt(16, sys.online?C.bright:sys.repairing?C.amber:C.dim),
-                  textShadow:sys.online?glow(C.bright):'none', whiteSpace:'nowrap', flexShrink:0 }}>
-                  {sys.online ? <><StatusDot online large /> ONLINE</>
-                   : sys.repairing ? '⚙ EM REPARO'
-                   : <><StatusDot online={false} /> OFFLINE</>}
+                <span style={{ ...vt(16, (sys.status === 'online' || sys.online)?C.bright:sys.repairing?C.amber:C.dim),
+                  textShadow:(sys.status === 'online' || sys.online)?glow(C.bright):'none', whiteSpace:'nowrap', flexShrink:0 }}>
+                  {(sys.status === 'online' || sys.online) ? <><StatusDot online large /> ONLINE</>
+                    : sys.repairing ? '⚙ EM REPARO'
+                    : <><StatusDot online={false} /> OFFLINE</>}
                 </span>
               </div>
-              {sys.locked && !sys.online && !sys.repairing && (
+              {(!sys.panelUnlocked && sys.locked) && !(sys.status === 'online' || sys.online) && !sys.repairing && (
                 <div style={mono(10, C.dim, { letterSpacing:'0.04em' })}>⚿ Painel não acessado</div>
               )}
-              {!sys.online && !sys.repairing && !sys.locked && (
+              {!(sys.status === 'online' || sys.online) && !sys.repairing && (sys.panelUnlocked || !sys.locked) && (
                 <PDTButton variant="amber" onClick={() => onRepair(sys)}
                   style={{ padding:'8px 16px', fontSize:'17px', whiteSpace:'nowrap', alignSelf:'flex-start' }}>
                   [ INICIAR REPARO ]
@@ -104,7 +123,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
           ))}
         </React.Fragment>
       ))}
-      {/* Android: team location */}
+
       {isAndroid && (
         <div style={{ padding:'12px 14px', borderTop:`1px solid ${C.dim}`, marginTop:'8px' }}>
           <div style={{ ...vt(18, C.cyan), marginBottom:'8px' }}>◈ LOCALIZAÇÃO DA EQUIPE</div>
@@ -245,7 +264,18 @@ const SysResult = ({ success, system, duration, attempts, onBack }) => (
 
 // ── SysScreen orchestrator ─────────────────────────────────────────────────────
 
-const SysScreen = ({ sysState, setSysState, isAndroid, shipSystems, onRepairCommand }) => {
+const getDifficultyLevel = (character, requiredSkill) => {
+  if (!character) return 0; // No character info? Impossible, but safety first
+  const hasSkill = (character.skills || []).includes(requiredSkill);
+  if (!hasSkill) return 0; // Level 0: Sem Skill
+  
+  const level = character.nivel || 1;
+  if (level >= 3) return 3; // Level 3: Expert
+  if (level === 2) return 2; // Level 2: Veterano
+  return 1; // Level 1: Treinado
+};
+
+const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand }) => {
   const [selectedSys,  setSelectedSys]  = React.useState(null);
   const [repairResult, setRepairResult] = React.useState(null);
   const startTimeRef = React.useRef(null);
@@ -274,13 +304,15 @@ const SysScreen = ({ sysState, setSysState, isAndroid, shipSystems, onRepairComm
 
   if (sysState === 'minigame') {
     const MG = selectedSys?.mg ? window[selectedSys.mg] : null;
+    const difficultyLevel = getDifficultyLevel(character, selectedSys?.skill || 'Tecnologia');
+    
     if (!MG) return (
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'12px', padding:'20px' }}>
         <div style={vt(20, C.amber)}>MINIGAME CARREGANDO...</div>
         <PDTButton variant="dim" onClick={handleCancel}>[ VOLTAR ]</PDTButton>
       </div>
     );
-    return <MG onSuccess={handleSuccess} onFailure={handleFailure} isAndroid={isAndroid} />;
+    return <MG onSuccess={handleSuccess} onFailure={handleFailure} isAndroid={isAndroid} difficultyLevel={difficultyLevel} />;
   }
 
   if (sysState === 'success') {

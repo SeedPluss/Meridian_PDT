@@ -2,7 +2,7 @@
 
 // ── Alert Overlay ─────────────────────────────────────────────────────────────
 
-const AlertOverlay = ({ onDismiss }) => (
+const AlertOverlay = ({ onDismiss, data }) => (
   <div style={{
     position: 'absolute', inset: 0,
     background: '#0a0000',
@@ -29,9 +29,9 @@ const AlertOverlay = ({ onDismiss }) => (
       {/* Body */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'center' }}>
         <div style={mono(12, C.amber, { letterSpacing: '0.08em' })}>SENSOR DE PROXIMIDADE</div>
-        <div style={mono(12, C.amber, { letterSpacing: '0.05em' })}>DECK B — SETOR B3</div>
+        <div style={mono(12, C.amber, { letterSpacing: '0.05em' })}>{data?.sector ? `SETOR ${data.sector}` : 'SETOR DESCONHECIDO'}</div>
         <div style={{ ...vt(24, C.red), textShadow: glow(C.red), marginTop: '4px' }}>
-          MOVIMENTO DETECTADO
+          {data?.message || 'MOVIMENTO DETECTADO'}
         </div>
       </div>
 

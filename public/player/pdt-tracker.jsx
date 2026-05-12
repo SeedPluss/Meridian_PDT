@@ -1,9 +1,14 @@
 // pdt-tracker.jsx — Motion Tracker screen (Radar canvas + 3 sub-states)
 
-const RadarCanvas = ({ threatActive }) => {
+const RadarCanvas = ({ threatActive, blips }) => {
   const canvasRef = React.useRef(null);
   const rafRef    = React.useRef(null);
   const stateRef  = React.useRef({ angle: 0 });
+  const blipsRef  = React.useRef(blips);
+
+  React.useEffect(() => {
+    blipsRef.current = blips;
+  }, [blips]);
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,24 +82,35 @@ const RadarCanvas = ({ threatActive }) => {
 
       ctx.restore(); // end clip
 
-      // ── Threat blip ──────────────────────────────────────
-      if (threatActive) {
-        const tx = cx + Math.cos(0.72) * R * 0.58;
-        const ty = cy + Math.sin(-0.52) * R * 0.58;
-        const pulse = 10 + (Math.sin(Date.now() / 280) * 0.5 + 0.5) * 9;
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
-        ctx.shadowColor = '#ff2a2a';
-        ctx.shadowBlur  = 14;
-        ctx.fillStyle   = '#ff2a2a';
-        ctx.globalAlpha = 0.9;
-        ctx.beginPath(); ctx.arc(tx, ty, 5.5, 0, Math.PI * 2); ctx.fill();
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = '#ff2a2a';
-        ctx.lineWidth = 1.2;
-        ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
-        ctx.restore();
+      // ── Threat blips (from props) ────────────────────────
+      const currentBlips = Array.isArray(blipsRef.current) ? blipsRef.current : [];
+      if (currentBlips.length > 0) {
+        currentBlips.forEach(blip => {
+          // Calculate blip position based on distance and angle
+          // Assuming blip has { distance, angle } where angle is in degrees
+          // Or just use random pulse for now if structure is unknown, but we should map it.
+          // Fallback to random if structure doesn't match
+          const bAngle = blip.angle !== undefined ? (blip.angle * Math.PI) / 180 : -0.52;
+          const bDist = blip.distance !== undefined ? (blip.distance / 100) * R : R * 0.58;
+          
+          const tx = cx + Math.cos(bAngle) * bDist;
+          const ty = cy + Math.sin(bAngle) * bDist;
+          const pulse = 10 + (Math.sin(Date.now() / 280) * 0.5 + 0.5) * 9;
+          
+          ctx.save();
+          ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+          ctx.shadowColor = '#ff2a2a';
+          ctx.shadowBlur  = 14;
+          ctx.fillStyle   = '#ff2a2a';
+          ctx.globalAlpha = Math.max(0.2, 1 - (bDist / R)); // Fade out further blips a bit, or keep fixed
+          ctx.beginPath(); ctx.arc(tx, ty, 5.5, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 0.35;
+          ctx.strokeStyle = '#ff2a2a';
+          ctx.lineWidth = 1.2;
+          ctx.shadowBlur = 0;
+          ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        });
       }
 
       ctx.globalAlpha = 1;
@@ -118,7 +134,7 @@ const RadarCanvas = ({ threatActive }) => {
 
     draw();
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [threatActive]);
+  }, [threatActive]); // Removed blips from dependencies to avoid restarting loop, we use blipsRef instead
 
   return (
     <canvas ref={canvasRef} width={260} height={260}
@@ -128,7 +144,7 @@ const RadarCanvas = ({ threatActive }) => {
 
 // ── TrackerScreen ─────────────────────────────────────────────────────────────
 
-const TrackerScreen = ({ trackerState, goToSys }) => {
+const TrackerScreen = ({ trackerState, blips, currentSector, goToSys }) => {
   const online   = trackerState !== 'offline';
   const threat   = trackerState === 'threat';
 
@@ -136,7 +152,7 @@ const TrackerScreen = ({ trackerState, goToSys }) => {
   if (!online) return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px 6px' }}>
-        <span style={vt(20, C.main)}>TRACKER — B1</span>
+        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'B1'}</span>
         <span style={vt(18, C.dim)}>
           <StatusDot online={false} /> OFFLINE
         </span>
@@ -160,7 +176,7 @@ const TrackerScreen = ({ trackerState, goToSys }) => {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Sub-header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px 6px' }}>
-        <span style={vt(20, C.main)}>TRACKER — B1</span>
+        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'B1'}</span>
         <span style={{ ...vt(18, C.bright), textShadow: glow(C.bright) }}>
           <StatusDot online large /> ATIVA
         </span>
@@ -169,7 +185,7 @@ const TrackerScreen = ({ trackerState, goToSys }) => {
 
       {/* Radar */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-        <RadarCanvas threatActive={threat} />
+        <RadarCanvas threatActive={threat} blips={blips} />
       </div>
 
       <HRule />

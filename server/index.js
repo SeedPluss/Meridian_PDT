@@ -234,6 +234,59 @@ wss.on('connection', (ws) => {
             state.organism.huntTarget = null;
           }, 120000); // 2 minutes hunt
         }
+        broadcastToMasters({ type: 'FULL_STATE', state });
+        break;
+      }
+
+      case 'MASTER_MOVE_ORGANISM': {
+        if (info.role !== 'master') break;
+        const { sector } = msg;
+        moveOrganism(sector);
+        broadcastToMasters({ type: 'FULL_STATE', state });
+        break;
+      }
+
+      case 'MASTER_MOVE_PLAYER': {
+        if (info.role !== 'master') break;
+        const { targetPlayerId, sector } = msg;
+        if (state.players[targetPlayerId]) {
+          state.players[targetPlayerId].sector = sector;
+          state.players[targetPlayerId].lastLocationUpdate = Date.now();
+          broadcastToMasters({ type: 'FULL_STATE', state });
+          // Notify the player too if they are connected
+          clients.forEach((c, targetWs) => {
+            if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'NOTIFY_SECTOR_MOVE', sector });
+            }
+          });
+        }
+        break;
+      }
+
+      case 'MASTER_ADJ_STRESS': {
+        if (info.role !== 'master') break;
+        const { targetPlayerId, delta } = msg;
+        if (state.players[targetPlayerId]) {
+          state.players[targetPlayerId].stress = Math.max(0, state.players[targetPlayerId].stress + delta);
+          broadcastToMasters({ type: 'FULL_STATE', state });
+          // Notify the player
+          clients.forEach((c, targetWs) => {
+            if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'STRESS_UPDATE', stress: state.players[targetPlayerId].stress });
+            }
+          });
+        }
+        break;
+      }
+
+      case 'MASTER_KILL_SCAVENGER': {
+        if (info.role !== 'master') break;
+        const { scavengerId } = msg;
+        const scav = state.scavengers.find(s => s.id === scavengerId);
+        if (scav) {
+          scav.alive = false;
+          broadcastToMasters({ type: 'FULL_STATE', state });
+        }
         break;
       }
 
