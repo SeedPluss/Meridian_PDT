@@ -746,6 +746,19 @@ const MasterApp = () => {
         {tab==='msg'       && <TabMsg       players={players} chatHistory={chatHistory} onCommand={sendCmd} />}
         {tab==='alertas'   && <TabAlertas   players={players} onCommand={sendCmd} />}
         {tab==='sistemas'  && <TabSistemas  players={players} unlockedSystems={unlockedSystems} onCommand={sendCmd} />}
+        {tab === 'sistema' && (
+          <div style={{padding:'20px', color:MC.main, fontFamily:'monospace', fontSize:'12px', overflowY:'auto', flex:1}}>
+            <div style={{color:MC.cyan, marginBottom:'10px', fontSize:'14px'}}>LOG DE COMUNICAÇÃO (Últimos 10 pacotes):</div>
+            <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+              {debugLog.map((l,i) => (
+                <div key={i} style={{padding:'8px', background:'#001a08', borderLeft:`2px solid ${MC.dim}`, wordBreak:'break-all'}}>
+                  <span style={{color:MC.dim}}>[{i}]</span> {l}
+                </div>
+              ))}
+              {debugLog.length === 0 && <div style={{color:MC.dim}}>Aguardando primeiro pacote... Clique em 'FORÇAR SINCRONISMO' no rodapé.</div>}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

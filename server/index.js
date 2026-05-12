@@ -52,8 +52,12 @@ function broadcastToPlayers(msg, excludeWs = null) {
 
 function broadcastToMasters(msg) {
   const data = JSON.stringify(msg);
+  if (masters.size === 0) console.log('[WS] Nenhum mestre conectado para receber:', msg.type);
   masters.forEach(ws => {
-    if (ws.readyState === OPEN) ws.send(data);
+    if (ws.readyState === OPEN) {
+      ws.send(data);
+      console.log(`[WS] Enviado ${msg.type} para Master.`);
+    }
   });
 }
 
