@@ -34,6 +34,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 const clients = new Map();
+const masters = new Set();
 
 function broadcast(msg, excludeWs = null) {
   const data = JSON.stringify(msg);
@@ -51,8 +52,8 @@ function broadcastToPlayers(msg, excludeWs = null) {
 
 function broadcastToMasters(msg) {
   const data = JSON.stringify(msg);
-  clients.forEach((info, ws) => {
-    if (info.role === 'master' && ws.readyState === OPEN) ws.send(data);
+  masters.forEach(ws => {
+    if (ws.readyState === OPEN) ws.send(data);
   });
 }
 
@@ -104,6 +105,7 @@ wss.on('connection', (ws) => {
       case 'MASTER_AUTH': {
         if (msg.key === MASTER_KEY) {
           clients.set(ws, { role: 'master', id: 'master' });
+          masters.add(ws);
           sendTo(ws, { type: 'FULL_STATE', state });
         } else {
           sendTo(ws, { type: 'ERROR', msg: 'unauthorized' });
