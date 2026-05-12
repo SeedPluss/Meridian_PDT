@@ -306,6 +306,8 @@ wss.on('connection', (ws) => {
           if (String(c.id).toLowerCase() === String(targetPlayerId).toLowerCase() && targetWs.readyState === OPEN) {
             console.log(`[WS] Enviando PANEL_UNLOCKED (${systemId}) para ${c.id}`);
             sendTo(targetWs, { type: 'PANEL_UNLOCKED', systemId });
+            // Força a atualização da lista de sistemas disponíveis para garantir a exibição
+            sendTo(targetWs, { type: 'SYSTEMS_AVAILABLE', systems: [systemId] });
             found = true;
           }
         });
