@@ -103,7 +103,19 @@ const App = () => {
   const [countdownTime,  setCountdownTime]  = React.useState(0);
 
   // Systems and Documents State
-  const [shipSystems,   setShipSystems]   = React.useState({});
+  const [shipSystems,   setShipSystems]   = React.useState({
+    reactor: { online: false },
+    power_grid: { online: false },
+    life_support: { online: false },
+    motion_tracker: { online: false },
+    comms_local: { online: false },
+    comms_long: { online: false },
+    lighting_a: { online: false },
+    lighting_b: { online: false },
+    lighting_c: { online: false },
+    door_control: { online: false },
+    lifepods: { online: false }
+  });
   const [docList,       setDocList]       = React.useState([]);
   const [downloadError, setDownloadError] = React.useState(null);
 
@@ -150,7 +162,8 @@ const App = () => {
 
         case 'TRACKER_UPDATE':
           setBlips(data.blips || []);
-          if (data.sensorOnline === false) {
+          const trackerSys = shipSystems['motion_tracker'];
+          if (data.sensorOnline === false || !trackerSys?.online) {
             setTrackerState('offline');
           } else {
             const blips = data.blips || [];
@@ -320,7 +333,10 @@ const App = () => {
   };
 
   const handleTabChange = (tab) => {
-    if (blockedTabs[tab]) return; // blocked — don't navigate
+    if (blockedTabs[tab]) return; 
+    if (tab === 'tracker' && !shipSystems['motion_tracker']?.online) {
+       // Permite ir para a aba, mas ela mostrará "OFFLINE"
+    }
     setActiveTab(tab);
     if (tab === 'sys')   setSysState('list');
     if (tab === 'docs' && docsState === 'reading') setDocsState('list');

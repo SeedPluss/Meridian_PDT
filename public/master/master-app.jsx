@@ -79,11 +79,11 @@ const TabJogadores = ({ players, onCommand }) => {
                 <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
                   <div style={{width:'100px', height:'10px', background:MC.ghost, position:'relative'}}>
                     <div style={{position:'absolute', left:0, height:'100%',
-                      width:`${(p.stress/p.maxS)*100}%`,
-                      background: p.stress/p.maxS>0.7?MC.red:p.stress/p.maxS>0.4?MC.amber:MC.main,
+                      width:`${(p.stress/(p.stress_max||40))*100}%`,
+                      background: p.stress/(p.stress_max||40)>0.7?MC.red:p.stress/(p.stress_max||40)>0.4?MC.amber:MC.main,
                     }}/>
                   </div>
-                  <span style={vt(15,MC.dim)}>{p.stress}/{p.maxS}</span>
+                  <span style={vt(15,MC.dim)}>{p.stress}/{p.stress_max||40}</span>
                 </div>
               </td>
               <td style={{padding:'8px 10px'}}>
@@ -313,7 +313,7 @@ const TabDocs = ({ players, unlockedDocs, onCommand }) => {
 
 // ── TAB: MSG ──────────────────────────────────────────────────────────────────
 
-const TabMsg = ({ players, onCommand }) => {
+const TabMsg = ({ players, onCommand, chatHistory = [] }) => {
   const [dest,    setDest]    = React.useState('todos');
   const [voice,   setVoice]   = React.useState('seegson');
   const [text,    setText]    = React.useState('');
@@ -379,6 +379,19 @@ const TabMsg = ({ players, onCommand }) => {
           <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Nota privada (só o jogador vê)..." style={{...inputStyle, borderColor:MC.dim, color:MC.main}} />
           <Btn col={MC.main} sz={15} onClick={()=>send('note')} style={{marginTop:'6px', width:'100%'}}>[ ENVIAR NOTA SECRETA ]</Btn>
         </div>
+      </div>
+
+      {/* Middle: Chat Log */}
+      <div style={{flex:1, padding:'12px', overflowY:'auto', scrollbarWidth:'thin', borderLeft:`1px solid ${MC.ghost}`, borderRight:`1px solid ${MC.ghost}`}}>
+        <div style={mo(10,MC.dim,{letterSpacing:'.06em', marginBottom:'8px'})}>HISTÓRICO DO COMMS:</div>
+        {chatHistory.length===0 && <div style={mo(11,MC.ghost)}>Nenhuma mensagem captada.</div>}
+        {chatHistory.map((m,i)=>(
+          <div key={i} style={{padding:'4px 0', borderBottom:`1px solid ${MC.ghost}44`}}>
+            <span style={mo(10,MC.dim)}>[{m.time}] </span>
+            <span style={vt(16, m.channel==='W-Y'?MC.wy:MC.bright)}>{m.sender}: </span>
+            <span style={vt(16, m.channel==='W-Y'?MC.wy:MC.main)}>{m.text}</span>
+          </div>
+        ))}
       </div>
 
       {/* Right: sent log */}
@@ -525,7 +538,7 @@ const MASTER_SYSTEMS = [
   { id:'comms_local', label:'COMMS LOCAL',        sector:'A2'  },
   { id:'life_support',label:'LIFE SUPPORT',       sector:'B1'  },
   { id:'lighting',    label:'LIGHTING',           sector:'MBC' },
-  { id:'tracker',     label:'MOTION TRACKER',     sector:'B'   },
+  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors' },
 ];
 
 const TabSistemas = ({ players, unlockedSystems, onCommand }) => {
@@ -584,6 +597,7 @@ const MasterApp = () => {
   const [scavengers,setScavengers]= React.useState([]);
   const [unlockedSystems, setUnlockedSystems] = React.useState({});
   const [unlockedDocs, setUnlockedDocs]       = React.useState([]);
+  const [chatHistory,  setChatHistory]        = React.useState([]);
   const [time, setTime]                       = React.useState('');
   const [ws, setWs]                           = React.useState(null);
 
@@ -602,9 +616,9 @@ const MasterApp = () => {
         const s = msg.state;
         if (s.players) {
           // Convert server players object to array for UI
-          const pArray = Object.keys(s.players).map(id => ({
-            id,
-            ...s.players[id]
+          const pArray = Object.keys(s.players).map(idStr => ({
+            id: isNaN(parseInt(idStr)) ? idStr : parseInt(idStr),
+            ...s.players[idStr]
           }));
           setPlayers(pArray);
         }
@@ -627,6 +641,9 @@ const MasterApp = () => {
         }
         if (s.unlockedSystems) setUnlockedSystems(s.unlockedSystems);
         if (s.unlockedDocs)    setUnlockedDocs(s.unlockedDocs);
+      }
+      if (msg.type === 'COMMS_MESSAGE') {
+        setChatHistory(prev => [...prev, msg.message]);
       }
     };
 
@@ -692,7 +709,7 @@ const MasterApp = () => {
         {tab==='jogadores' && <TabJogadores players={players} onCommand={sendCmd} />}
         {tab==='tracker'   && <TabTracker   players={players} organism={organism} scavengers={scavengers} onCommand={sendCmd} setOrganism={setOrganism} />}
         {tab==='docs'      && <TabDocs      players={players} unlockedDocs={unlockedDocs} onCommand={sendCmd} />}
-        {tab==='msg'       && <TabMsg       players={players} onCommand={sendCmd} />}
+        {tab==='msg'       && <TabMsg       players={players} chatHistory={chatHistory} onCommand={sendCmd} />}
         {tab==='alertas'   && <TabAlertas   players={players} onCommand={sendCmd} />}
         {tab==='sistemas'  && <TabSistemas  players={players} unlockedSystems={unlockedSystems} onCommand={sendCmd} />}
       </div>

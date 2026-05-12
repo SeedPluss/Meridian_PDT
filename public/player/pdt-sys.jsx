@@ -6,13 +6,13 @@ const ALL_SYSTEMS = [
   { id:'lifepods',    label:'LIFEPODS / DOCA',   sector:'C3',     mg:'MinigameLifepods',     online:false, locked:true,  repairing:false, skill:'Pilotagem',  diff:'NORMAL', switches:4, timer:90  },
   { id:'door_ctrl',   label:'DOOR CONTROL',      sector:'C3',     mg:'MinigameDoorControl',  online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
   { id:'comms_lr',    label:'COMMS LONGA DIST.', sector:'A1',     mg:'MinigameCommsLR',      online:false, locked:false, repairing:true,  skill:'Percepção',  diff:'ALTA',   switches:5, timer:90  },
-  { id:'comms_local', label:'COMMS LOCAL',        sector:'A2',     mg:'MinigameCommsLocal',   online:true,  locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
-  { id:'life_support',label:'LIFE SUPPORT',       sector:'B1',     mg:'MinigameLifeSupport',  online:true,  locked:false, repairing:false, skill:'Ciência',    diff:'ALTA',   switches:6, timer:120 },
+  { id:'comms_local', label:'COMMS LOCAL',        sector:'A2',     mg:'MinigameCommsLocal',   online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
+  { id:'life_support',label:'LIFE SUPPORT',       sector:'B1',     mg:'MinigameLifeSupport',  online:false, locked:false, repairing:false, skill:'Ciência',    diff:'ALTA',   switches:6, timer:120 },
   { id:'lighting',    label:'LIGHTING',           sector:'MBC',    mg:'MinigameLighting',     online:false, locked:false, repairing:false, skill:'Maquinaria', diff:'NORMAL', switches:3, timer:90  },
-  { id:'tracker',     label:'MOTION TRACKER',     sector:'B-CORR', mg:'MinigameMotionTracker',online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:3, timer:60  },
+  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors', mg:'MinigameMotionTracker',online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:3, timer:60  },
 ];
 
-const SECTOR_ORDER = ['C1','C3','A1','A2','B1','MBC','B-CORR'];
+const SECTOR_ORDER = ['C1','C3','A1','A2','B1','MBC','B_corridors'];
 
 // Group by sector
 const bySector = SECTOR_ORDER.map(s => ({

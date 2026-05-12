@@ -66,8 +66,12 @@ setBroadcasters(
     // tracker update
     clients.forEach((info, ws) => {
       if (info.role === 'player' && ws.readyState === OPEN) {
-        const blips = getBlipsForPlayer(info.id);
-        sendTo(ws, { type: 'TRACKER_UPDATE', blips });
+        if (!state.systems.motion_tracker.online) {
+          sendTo(ws, { type: 'TRACKER_UPDATE', blips: [], sensorOnline: false });
+        } else {
+          const blips = getBlipsForPlayer(info.id);
+          sendTo(ws, { type: 'TRACKER_UPDATE', blips, sensorOnline: true });
+        }
       }
     });
     broadcastToMasters({ type: 'MASTER_TRACKER_UPDATE', organism: state.organism, scavengers: state.scavengers });
@@ -111,20 +115,21 @@ wss.on('connection', (ws) => {
         const { username, password } = msg;
         const char = getCharacter(username, password);
         if (char) {
-          info.id = char.id;
-          state.players[char.id] = {
-            id: char.id,
-            name: char.nome,
-            role: char.cargo,
-            level: char.nivel,
-            skills: char.skills,
-            sector: 'A1', // default starting sector
-            stress: 0,
-            stress_max: char.stress_max,
-            isAndroid: char.isAndroid,
-            online: true,
-            lastLocationUpdate: Date.now()
-          };
+            info.role = 'player';
+            info.id = char.id;
+            state.players[char.id] = {
+              id: char.id,
+              name: char.nome,
+              role: char.cargo,
+              level: char.nivel,
+              skills: char.skills,
+              sector: 'A1', // default starting sector
+              stress: 0,
+              stress_max: char.stress_max,
+              isAndroid: char.isAndroid,
+              online: true,
+              lastLocationUpdate: Date.now()
+            };
           
           sendTo(ws, { 
             type: 'LOGIN_OK', 
@@ -339,19 +344,30 @@ wss.on('connection', (ws) => {
         const { channel, text } = msg;
         if (!channel || !text) break;
         const authorName = state.players[info.id]?.name || 'UNKNOWN';
-        const newMsg = { channel, author: authorName, text, timestamp: Date.now() };
+        const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const newMsg = { 
+          channel, 
+          sender: authorName, 
+          text, 
+          time: timeStr, 
+          type: 'crew', 
+          timestamp: Date.now() 
+        };
         
         // WY channel is restricted
         if (channel === 'W-Y') {
           if (info.role === 'master' || state.players[info.id]?.isAndroid) {
             clients.forEach((c, targetWs) => {
               if ((c.role === 'master' || state.players[c.id]?.isAndroid) && targetWs.readyState === OPEN) {
-                sendTo(targetWs, { type: 'CHAT_MSG', ...newMsg });
+                sendTo(targetWs, { type: 'COMMS_MESSAGE', message: newMsg });
               }
             });
           }
         } else {
-          broadcast({ type: 'CHAT_MSG', ...newMsg });
+          // Broadcast to all except sender (PDT has local echo)
+          broadcast({ type: 'COMMS_MESSAGE', message: newMsg }, ws);
+          // Ensure Master gets it (Master doesn't have local echo for player messages)
+          broadcastToMasters({ type: 'COMMS_MESSAGE', message: newMsg });
         }
         break;
       }
