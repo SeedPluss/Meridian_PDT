@@ -295,6 +295,10 @@ const App = () => {
         setShowCountdown(true);
         break;
 
+      case 'TRACKER_STATE':
+        setTrackerState(data.state || 'offline');
+        break;
+
       case 'COUNTDOWN_STOP':
         setShowCountdown(false);
         setCountdownTime(0);

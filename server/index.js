@@ -166,6 +166,10 @@ wss.on('connection', (ws) => {
             type: 'LOGIN_OK', 
             character: { ...char, isAndroid: undefined } 
           });
+          sendTo(ws, { type: 'TRACKER_STATE', state: state.systems.motion_tracker.online ? 'online' : 'offline' });
+          const currentSector = state.players[msg.username].sector;
+          sendTo(ws, { type: 'SECTOR_UPDATE', sector: currentSector, sectorName: state.sectors[currentSector]?.name });
+          sendTo(ws, { type: 'SYSTEMS_AVAILABLE', systems: state.unlockedSystems[currentSector] });
           broadcastToMasters({ type: 'FULL_STATE', state });
           console.log(`[LOGIN] ${char.nome} logado.`);
         } else {
@@ -208,6 +212,9 @@ wss.on('connection', (ws) => {
           info.id = characterId;
           pData.online = true;
           sendTo(ws, { type: 'SESSION_RESUMED', character: pData });
+          sendTo(ws, { type: 'TRACKER_STATE', state: state.systems.motion_tracker.online ? 'online' : 'offline' });
+          sendTo(ws, { type: 'SECTOR_UPDATE', sector: pData.sector, sectorName: state.sectors[pData.sector]?.name });
+          sendTo(ws, { type: 'SYSTEMS_AVAILABLE', systems: state.unlockedSystems[pData.sector] });
           sendTo(ws, { type: 'FULL_STATE', state });
           broadcastToMasters({ type: 'FULL_STATE', state });
           console.log(`[RESUME] SUCESSO: ${pData.name} retomou conexão.`);
@@ -266,6 +273,18 @@ wss.on('connection', (ws) => {
       case 'MINIGAME_RESULT': {
         const { systemId, success } = msg;
         resolveRepair(systemId, success);
+        
+        // Special case: Motion Tracker unlocks the tab
+        if (systemId === 'motion_tracker' && success) {
+          // Notify the ship
+          clients.forEach((c, targetWs) => {
+            if (targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'SYSTEM_ONLINE', systemId: 'motion_tracker' });
+              sendTo(targetWs, { type: 'TRACKER_STATE', state: 'online' });
+            }
+          });
+        }
+
         if (!success && state.players[info.id]) {
           state.players[info.id].stress += 1;
         }
@@ -349,7 +368,8 @@ wss.on('connection', (ws) => {
           // Notify the player
           clients.forEach((c, targetWs) => {
             if (c.id == targetPlayerId && targetWs.readyState === OPEN) {
-              sendTo(targetWs, { type: 'NOTIFY_SECTOR_MOVE', sector });
+              sendTo(targetWs, { type: 'SECTOR_UPDATE', sector, sectorName: state.sectors[sector]?.name });
+              sendTo(targetWs, { type: 'SYSTEMS_AVAILABLE', systems: state.unlockedSystems[sector] });
             }
           });
         }
