@@ -486,6 +486,7 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     clients.delete(ws);
+    masters.delete(ws);
   });
 
   ws.on('error', (err) => console.error('[WS] Error:', err.message));
