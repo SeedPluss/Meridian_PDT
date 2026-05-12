@@ -14,7 +14,7 @@ const documents = require('./documents');
 documents.loadDocuments();
 
 const PORT = process.env.PORT || 3000;
-const MASTER_KEY = process.env.MASTER_KEY || 'meridian-master';
+const MASTER_KEY = process.env.MASTER_KEY || 'alienfofinho123';
 console.log('[DEBUG] Sistema iniciado. Chave Master configurada:', MASTER_KEY);
 
 const app = express();

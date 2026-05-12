@@ -529,6 +529,8 @@ const TabAlertas = ({ players, onCommand }) => {
 
 // ── TAB: SISTEMAS ─────────────────────────────────────────────────────────────
 
+const MASTER_KEY = process.env.MASTER_KEY || 'alienfofinho123';
+
 const MASTER_SYSTEMS = [
   { id:'reactor',     label:'REACTOR',          sector:'C1'  },
   { id:'power_grid',  label:'POWER GRID',        sector:'C1'  },
@@ -619,7 +621,7 @@ const MasterApp = () => {
       socket.onopen = () => {
         console.log('[MASTER] Connected');
         setDebugLog(prev => [`[${new Date().toLocaleTimeString()}] [SISTEMA] Conectado. Enviando MASTER_AUTH...`, ...prev]);
-        socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'meridian-master' }));
+        socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'alienfofinho123' }));
       };
 
       socket.onmessage = (e) => {
