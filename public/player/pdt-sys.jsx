@@ -60,7 +60,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
   const visibleSystems = ALL_SYSTEMS.filter(sys => {
     const serverSys = shipSystems && shipSystems[sys.id];
     if (serverSys) {
-      return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online';
+      return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online' || serverSys.online === true;
     }
     // Se o servidor não mandou nada sobre ele, fica oculto.
     return false;

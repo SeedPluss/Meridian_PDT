@@ -101,16 +101,16 @@ function getBlipsForPlayer(playerId) {
 
   const blips = [];
 
-  // Organism (only if moving)
-  if (state.organism.isMoving) {
-    const relation = getSectorRelation(player.sector, state.organism.currentSector);
-    if (relation === 'same' || relation === 'adjacent') {
+  // Organism (if moving OR in the same sector)
+  const xenoRelation = getSectorRelation(player.sector, state.organism.currentSector);
+  if (state.organism.isMoving || xenoRelation === 'same') {
+    if (xenoRelation === 'same' || xenoRelation === 'adjacent') {
       blips.push({
         entity: 'organism',
-        sector: relation,
+        sector: xenoRelation,
         angle: calculateAngle(player.sector, state.organism.currentSector),
-        distance: relation === 'same' ? 0.3 + Math.random() * 0.4 : 0.7 + Math.random() * 0.2,
-        moving: true
+        distance: xenoRelation === 'same' ? 0.3 + Math.random() * 0.3 : 0.7 + Math.random() * 0.2,
+        moving: state.organism.isMoving
       });
     }
   }
@@ -150,6 +150,9 @@ function getBlipsForPlayer(playerId) {
 // Loops
 setInterval(patrolTick, 5000);
 setInterval(scavengerTick, 5000);
+setInterval(() => {
+  broadcastTrackerUpdateFn();
+}, 3000); // Constant ping every 3 seconds
 
 module.exports = {
   getBlipsForPlayer,
