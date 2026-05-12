@@ -363,6 +363,12 @@ const App = () => {
     (activeTab === 'sys'  && ['briefing','minigame','success','failure'].includes(sysState));
 
   // ── Handlers ─────────────────────────────────────────────────────────────
+  const handleLoginConfirm = (char) => {
+    setCharacter(char);
+    setLoggedIn(true);
+    setActiveTab('tracker');
+  };
+
   const handleAuthRequest = (user, pass) => {
     setAuthError(null);
     if (ws && ws.readyState === WebSocket.OPEN) {
