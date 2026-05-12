@@ -481,6 +481,14 @@ wss.on('connection', (ws) => {
         break;
       }
 
+      case 'MASTER_REQUEST_SYNC': {
+        if (info.role === 'master') {
+          sendTo(ws, { type: 'FULL_STATE', state });
+          console.log('[MASTER] Sincronismo forçado solicitado.');
+        }
+        break;
+      }
+
       default:
         console.log('[WS] Unknown message type:', msg.type);
     }

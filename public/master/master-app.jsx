@@ -598,8 +598,15 @@ const MasterApp = () => {
   const [unlockedSystems, setUnlockedSystems] = React.useState({});
   const [unlockedDocs, setUnlockedDocs]       = React.useState([]);
   const [chatHistory,  setChatHistory]        = React.useState([]);
+  const [debugLog,     setDebugLog]           = React.useState([]);
   const [time, setTime]                       = React.useState('');
   const [ws, setWs]                           = React.useState(null);
+
+  const forceSync = () => {
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'MASTER_REQUEST_SYNC' }));
+    }
+  };
 
   React.useEffect(() => {
     let socket = null;
@@ -616,11 +623,13 @@ const MasterApp = () => {
 
       socket.onmessage = (e) => {
         const msg = JSON.parse(e.data);
+        setDebugLog(prev => [JSON.stringify(msg).slice(0, 100) + '...', ...prev].slice(0, 10));
+
         if (msg.type === 'FULL_STATE') {
           const s = msg.state;
           if (s.players) {
             const pArray = Object.keys(s.players).map(idStr => ({
-              id: isNaN(parseInt(idStr)) ? idStr : parseInt(idStr),
+              id: s.players[idStr].id || idStr,
               ...s.players[idStr]
             }));
             setPlayers(pArray);
@@ -692,6 +701,7 @@ const MasterApp = () => {
     {id:'msg',       label:'MSG'},
     {id:'alertas',   label:'ALERTAS'},
     {id:'sistemas',  label:'SISTEMAS'},
+    {id:'sistema',   label:'SISTEMA'},
   ];
 
   return (
