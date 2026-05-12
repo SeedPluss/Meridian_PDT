@@ -337,7 +337,7 @@ const App = () => {
         reconnectTimer = setTimeout(connect, 3000);
       };
 
-      setWs(socket);
+      ws = socket;
     };
 
     connect();
