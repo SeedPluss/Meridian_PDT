@@ -42,10 +42,10 @@ function broadcast(msg, excludeWs = null) {
   });
 }
 
-function broadcastToPlayers(msg) {
+function broadcastToPlayers(msg, excludeWs = null) {
   const data = JSON.stringify(msg);
   clients.forEach((info, ws) => {
-    if (info.role === 'player' && ws.readyState === OPEN) ws.send(data);
+    if (info.role === 'player' && ws !== excludeWs && ws.readyState === OPEN) ws.send(data);
   });
 }
 
@@ -115,29 +115,49 @@ wss.on('connection', (ws) => {
         const { username, password } = msg;
         const char = getCharacter(username, password);
         if (char) {
-            info.role = 'player';
-            info.id = char.id;
-            state.players[char.id] = {
-              id: char.id,
-              name: char.nome,
-              role: char.cargo,
-              level: char.nivel,
-              skills: char.skills,
-              sector: 'A1', // default starting sector
-              stress: 0,
-              stress_max: char.stress_max,
-              isAndroid: char.isAndroid,
-              online: true,
-              lastLocationUpdate: Date.now()
-            };
+          info.role = 'player';
+          info.id = char.id;
+          const existing = state.players[char.id];
+          state.players[char.id] = {
+            id: char.id,
+            name: char.nome,
+            role: char.cargo,
+            level: char.nivel,
+            skills: char.skills,
+            sector: (existing && existing.sector) || 'A1',
+            stress: (existing && existing.stress) || 0,
+            stress_max: char.stress_max,
+            isAndroid: char.isAndroid,
+            online: true,
+            lastLocationUpdate: Date.now()
+          };
           
           sendTo(ws, { 
             type: 'LOGIN_OK', 
-            character: { ...char, isAndroid: undefined } // hide android flag
+            character: { ...char, isAndroid: undefined } 
           });
           broadcastToMasters({ type: 'FULL_STATE', state });
+          console.log(`[LOGIN] ${char.nome} logado.`);
         } else {
           sendTo(ws, { type: 'LOGIN_ERR', msg: 'CREDENCIAS INVÁLIDAS' });
+        }
+        break;
+      }
+
+      case 'RESUME_SESSION': {
+        const { characterId } = msg;
+        const pData = state.players[characterId];
+        console.log(`[RESUME] Tentativa de retomar: ${characterId}`);
+        if (pData) {
+          info.role = 'player';
+          info.id = characterId;
+          pData.online = true;
+          sendTo(ws, { type: 'SESSION_RESUMED', character: pData });
+          sendTo(ws, { type: 'FULL_STATE', state });
+          broadcastToMasters({ type: 'FULL_STATE', state });
+          console.log(`[RESUME] SUCESSO: ${pData.name} retomou conexão.`);
+        } else {
+          console.log(`[RESUME] FALHA: Dados não encontrados para ${characterId}`);
         }
         break;
       }
@@ -301,7 +321,22 @@ wss.on('connection', (ws) => {
       case 'MASTER_SEND_MOTHER': {
         if (info.role !== 'master') break;
         const { targetPlayerId, voice, text } = msg;
-        const msgObj = { type: 'MOTHER_MSG', voice, text };
+        const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        const motherMsg = { 
+          type: 'MOTHER_MSG', voice, text 
+        };
+        const historyMsg = {
+          type: 'COMMS_MESSAGE',
+          message: {
+            channel: 'GERAL',
+            sender: voice === 'W-Y' ? 'W-Y MOTHER' : 'MOTHER',
+            text: text,
+            time: timeStr,
+            type: 'system',
+            timestamp: Date.now()
+          }
+        };
 
         clients.forEach((c, targetWs) => {
           const pState = state.players[c.id];
@@ -311,9 +346,12 @@ wss.on('connection', (ws) => {
             (pState && pState.sector === targetPlayerId)
           );
           if (isTarget && targetWs.readyState === OPEN) {
-            sendTo(targetWs, msgObj);
+            sendTo(targetWs, motherMsg);
+            sendTo(targetWs, historyMsg);
           }
         });
+        // Also send to Master history
+        broadcastToMasters(historyMsg);
         break;
       }
 
@@ -367,11 +405,11 @@ wss.on('connection', (ws) => {
       // CHAT messages
       case 'CHAT_SEND': {
         const { channel, text } = msg;
-        if (!channel || !text) break;
+        if (!text) break;
         const authorName = state.players[info.id]?.name || 'UNKNOWN';
         const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const newMsg = { 
-          channel, 
+          channel: channel || 'GERAL', 
           sender: authorName, 
           text, 
           time: timeStr, 
@@ -379,20 +417,22 @@ wss.on('connection', (ws) => {
           timestamp: Date.now() 
         };
         
-        // WY channel is restricted
+        console.log(`[CHAT] ${authorName} @ ${channel || 'GERAL'}: ${text}`);
+
         if (channel === 'W-Y') {
-          if (info.role === 'master' || state.players[info.id]?.isAndroid) {
-            clients.forEach((c, targetWs) => {
-              if ((c.role === 'master' || state.players[c.id]?.isAndroid) && targetWs.readyState === OPEN) {
-                sendTo(targetWs, { type: 'COMMS_MESSAGE', message: newMsg });
-              }
-            });
-          }
+          // Restricted WY channel logic
+          clients.forEach((c, targetWs) => {
+            if ((c.role === 'master' || state.players[c.id]?.isAndroid) && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'COMMS_MESSAGE', message: newMsg });
+            }
+          });
         } else {
-          // Broadcast to all except sender (PDT has local echo)
-          broadcast({ type: 'COMMS_MESSAGE', message: newMsg }, ws);
-          // Ensure Master gets it (Master doesn't have local echo for player messages)
-          broadcastToMasters({ type: 'COMMS_MESSAGE', message: newMsg });
+          // Standard broadcast
+          const commsMsg = { type: 'COMMS_MESSAGE', message: newMsg };
+          // Enviar para TODOS os jogadores (exceto quem enviou, pois tem eco local)
+          broadcastToPlayers(commsMsg, ws);
+          // Garantir que os Mestres recebam
+          broadcastToMasters(commsMsg);
         }
         break;
       }

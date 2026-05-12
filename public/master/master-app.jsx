@@ -602,70 +602,80 @@ const MasterApp = () => {
   const [ws, setWs]                           = React.useState(null);
 
   React.useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}`);
-    
-    socket.onopen = () => {
-      console.log('[MASTER] Connected');
-      socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'meridian-master' }));
-    };
+    let socket = null;
+    let reconnectTimer = null;
 
-    socket.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'FULL_STATE') {
-        const s = msg.state;
-        if (s.players) {
-          // Convert server players object to array for UI
-          const pArray = Object.keys(s.players).map(idStr => ({
-            id: isNaN(parseInt(idStr)) ? idStr : parseInt(idStr),
-            ...s.players[idStr]
-          }));
-          setPlayers(pArray);
+    const connect = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      socket = new WebSocket(`${protocol}//${window.location.host}`);
+      
+      socket.onopen = () => {
+        console.log('[MASTER] Connected');
+        socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'meridian-master' }));
+      };
+
+      socket.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'FULL_STATE') {
+          const s = msg.state;
+          if (s.players) {
+            const pArray = Object.keys(s.players).map(idStr => ({
+              id: isNaN(parseInt(idStr)) ? idStr : parseInt(idStr),
+              ...s.players[idStr]
+            }));
+            setPlayers(pArray);
+          }
+          if (s.organism) {
+            setOrganism({
+              sector: s.organism.currentSector,
+              mode: s.organism.mode.toUpperCase(),
+              moving: s.organism.isMoving,
+              target: s.organism.huntTarget,
+              territory: s.organism.territory
+            });
+          }
+          if (s.scavengers) {
+            setScavengers(s.scavengers.map(sc => ({
+              id: sc.id, name: sc.name, sector: sc.currentSector, alive: sc.alive
+            })));
+          }
+          if (s.unlockedSystems) setUnlockedSystems(s.unlockedSystems);
+          if (s.unlockedDocs)    setUnlockedDocs(s.unlockedDocs);
         }
-        if (s.organism) {
+        
+        if (msg.type === 'MASTER_TRACKER_UPDATE') {
           setOrganism({
-            sector: s.organism.currentSector,
-            mode: s.organism.mode.toUpperCase(),
-            moving: s.organism.isMoving,
-            target: s.organism.huntTarget,
-            territory: s.organism.territory
+            sector: msg.organism.currentSector,
+            mode: msg.organism.mode.toUpperCase(),
+            moving: msg.organism.isMoving,
+            target: msg.organism.huntTarget,
+            territory: msg.organism.territory
           });
-        }
-        if (s.scavengers) {
-          setScavengers(s.scavengers.map(sc => ({
-            id: sc.id,
-            name: sc.name,
-            sector: sc.currentSector,
-            alive: sc.alive
+          setScavengers(msg.scavengers.map(sc => ({
+            id: sc.id, name: sc.name, sector: sc.currentSector, alive: sc.alive
           })));
         }
-        if (s.unlockedSystems) setUnlockedSystems(s.unlockedSystems);
-        if (s.unlockedDocs)    setUnlockedDocs(s.unlockedDocs);
-      }
-      
-      if (msg.type === 'MASTER_TRACKER_UPDATE') {
-        setOrganism({
-          sector: msg.organism.currentSector,
-          mode: msg.organism.mode.toUpperCase(),
-          moving: msg.organism.isMoving,
-          target: msg.organism.huntTarget,
-          territory: msg.organism.territory
-        });
-        setScavengers(msg.scavengers.map(sc => ({
-          id: sc.id, name: sc.name, sector: sc.currentSector, alive: sc.alive
-        })));
-      }
 
-      if (msg.type === 'COMMS_MESSAGE') {
-        setChatHistory(prev => [...prev, msg.message]);
-      }
+        if (msg.type === 'COMMS_MESSAGE') {
+          setChatHistory(prev => [...prev, msg.message]);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log('[MASTER] Disconnected. Retrying...');
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      setWs(socket);
     };
 
-    setWs(socket);
+    connect();
     const iv = setInterval(()=>setTime(new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})),1000);
+    
     return () => {
       clearInterval(iv);
-      socket.close();
+      if (socket) socket.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     };
   }, []);
 

@@ -2,11 +2,12 @@
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-const PDTHeader = ({ character, sectorName }) => (
+const PDTHeader = ({ character, sectorName, wsStatus }) => (
   <div style={{
     flexShrink:0, borderBottom:`1px solid ${C.dim}`,
     padding:'5px 14px', display:'flex', flexDirection:'column',
     justifyContent:'center', minHeight:'50px', background:C.black,
+    position:'relative'
   }}>
     <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
       <span style={{ ...vt(18,C.bright), textShadow:glow(C.bright) }}>
@@ -17,6 +18,18 @@ const PDTHeader = ({ character, sectorName }) => (
     </div>
     <div style={mono(11,C.mid,{letterSpacing:'0.04em'})}>
       {character ? `${character.nome.toUpperCase()} // ${character.cargo.toUpperCase()}` : 'AGUARDANDO LOGIN'}
+    </div>
+    
+    {/* Network indicator */}
+    <div style={{ position:'absolute', top:'12px', right:'14px', display:'flex', alignItems:'center', gap:'4px' }}>
+       <span style={mono(9, wsStatus==='open' ? C.main : C.red)}>
+         {wsStatus==='open' ? 'LINK' : 'FAIL'}
+       </span>
+       <div style={{ 
+         width:'6px', height:'6px', borderRadius:'50%', 
+         background: wsStatus==='open' ? C.bright : C.red,
+         boxShadow: wsStatus==='open' ? glow(C.bright) : glow(C.red)
+       }} />
     </div>
   </div>
 );
@@ -88,6 +101,7 @@ const App = () => {
   const [docsState,    setDocsState]    = React.useState('list');
   const [selectedDoc,  setSelectedDoc]  = React.useState(null);
   const [sysState,     setSysState]     = React.useState('list');
+  const [wsStatus,     setWsStatus]     = React.useState('connecting'); // connecting, open, closed
   const [activeBriefingSystem, setActiveBriefingSystem] = React.useState(null);
 
   // Overlays
@@ -131,176 +145,206 @@ const App = () => {
   }, []);
 
   // ── WebSocket ────────────────────────────────────────────────────────────
+  const handleSocketMessage = (data) => {
+    switch (data.type) {
+      case 'LOGIN_OK':
+        setCharacter(data.character);
+        setLoggedIn(true);
+        setActiveTab('tracker');
+        localStorage.setItem('meridian_char', JSON.stringify(data.character));
+        break;
+
+      case 'SESSION_RESUMED':
+        setCharacter(data.character);
+        setLoggedIn(true);
+        console.log('[PDT] Session resumed for', data.character.nome);
+        break;
+
+      case 'LOGIN_FAIL':
+      case 'LOGIN_ERR':
+        if (window.AudioEngine) window.AudioEngine.playError();
+        setAuthError(data.msg || data.message);
+        localStorage.removeItem('meridian_char');
+        break;
+
+      case 'FULL_STATE':
+        if (data.state.systems)  setShipSystems(data.state.systems);
+        if (data.state.tracker)  { 
+          setBlips(data.state.tracker); 
+          if (data.state.sensorOnline === false) setTrackerState('offline');
+          else setTrackerState(data.state.tracker.length > 0 ? 'threat' : 'clean'); 
+        }
+        if (data.state.docs)     setDocList(data.state.docs);
+        break;
+
+      case 'TRACKER_UPDATE':
+        setBlips(data.blips || []);
+        const trackerSys = shipSystems['motion_tracker'];
+        if (data.sensorOnline === false || !trackerSys?.online) {
+          setTrackerState('offline');
+        } else {
+          const blips = data.blips || [];
+          setTrackerState(blips.length > 0 ? 'threat' : 'clean');
+          if (blips.length > 0 && window.AudioEngine) {
+            window.AudioEngine.playBlip(blips[0].distance || 0.5, true);
+          }
+        }
+        break;
+
+      case 'SHIP_SYSTEMS_UPDATE':
+        setShipSystems(data.payload || data.systems || {});
+        break;
+
+      case 'SYSTEM_ONLINE':
+        setShipSystems(prev => ({
+          ...prev,
+          [data.systemId]: { ...(prev[data.systemId] || {}), online: true, repairing: false, status: 'online' }
+        }));
+        break;
+
+      case 'SYSTEM_DETECTED':
+        setShipSystems(prev => ({
+          ...prev,
+          [data.systemId]: { ...(prev[data.systemId] || {}), detected: true, panelUnlocked: false }
+        }));
+        if (window.AudioEngine) window.AudioEngine.playUnlock();
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      case 'PANEL_UNLOCKED':
+        setShipSystems(prev => ({
+          ...prev,
+          [data.systemId]: { ...(prev[data.systemId] || {}), locked: false, panelUnlocked: true }
+        }));
+        if (window.AudioEngine) window.AudioEngine.playUnlock();
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      case 'SYSTEM_BRIEFING':
+        setActiveBriefingSystem(data.system || null);
+        break;
+
+      case 'DOC_LIST':
+        setDocList(data.docs || []);
+        break;
+
+      case 'DOCUMENT_UNLOCKED':
+        setDocList(prev => [...prev, data.doc]);
+        if (activeTab !== 'docs') setCommsHistory(prev => [...prev, {
+          time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+          sender:'SYSTEM', text:`Novo documento desbloqueado: ${data.doc.id}`, type:'system'
+        }]);
+        if (window.AudioEngine) window.AudioEngine.playUnlock();
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      case 'DOC_DOWNLOAD_OK':
+        setDocList(prev => prev.find(d => d.id === data.doc.id) ? prev : [...prev, data.doc]);
+        setSelectedDoc(data.doc);
+        setDocsState('reading');
+        break;
+
+      case 'DOC_ACCESS_DENIED':
+      case 'DOC_DOWNLOAD_ERR':
+        setDownloadError({ type: data.errType || 'no_access', level: data.errLevel, message: data.message });
+        break;
+
+      case 'ALERT':
+        setAlertData(data);
+        setShowAlert(true);
+        if (window.AudioEngine) window.AudioEngine.playAlert();
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        break;
+
+      case 'MOTHER_MSG':
+      case 'MOTHER_MESSAGE':
+        setMotherVariant(data.voice === 'W-Y' ? 'wy' : 'seegson');
+        setShowMother(true);
+        if (window.AudioEngine) window.AudioEngine.playMother(data.voice === 'W-Y' ? 'wy' : 'seegson');
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      case 'SECRET_NOTE':
+        setSecretNoteText(data.text || null);
+        setShowSecretNote(true);
+        break;
+
+      case 'COUNTDOWN_START':
+        setCountdownTime(data.duration || data.seconds || 14*60+23);
+        setShowCountdown(true);
+        break;
+
+      case 'COUNTDOWN_STOP':
+        setShowCountdown(false);
+        setCountdownTime(0);
+        break;
+
+      case 'TAB_BLOCKED':
+        setBlockedTabs(prev => ({ ...prev, [data.tab]: !!data.blocked }));
+        break;
+
+      case 'SECTOR_UPDATE':
+        setCurrentSector(data.sector || 'A1');
+        setSectorName(data.sectorName || data.sector || 'A1');
+        break;
+
+      case 'COMMS_MESSAGE':
+        setCommsHistory(prev => [...prev, data.message]);
+        if (activeTab !== 'comms') setCommsUnread(prev => prev + 1);
+        if (window.AudioEngine) window.AudioEngine.playKeystroke();
+        break;
+
+      case 'COMMS_FREQUENCY_OK':
+        setCommsUnlocked(true);
+        if (window.AudioEngine) window.AudioEngine.playUnlock();
+        break;
+
+      case 'SILENT_VIBRATE':
+      case 'VIBRATE_SILENT':
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      default: break;
+    }
+  };
+
   React.useEffect(() => {
-    const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${protocol}://${location.host}`);
+    let socket = null;
+    let reconnectTimer = null;
 
-    ws.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      switch (data.type) {
+    const connect = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      socket = new WebSocket(`${protocol}//${window.location.host}`);
 
-        case 'LOGIN_OK':
-          if (window.AudioEngine) window.AudioEngine.playUnlock();
-          setAuthCharacter(data.character);
-          break;
+      socket.onopen = () => {
+        console.log('[PDT] Connected');
+        setWsStatus('open');
+        const saved = localStorage.getItem('meridian_char');
+        if (saved) {
+          const char = JSON.parse(saved);
+          socket.send(JSON.stringify({ type: 'RESUME_SESSION', characterId: char.id }));
+        }
+      };
 
-        case 'LOGIN_FAIL':
-        case 'LOGIN_ERR':
-          if (window.AudioEngine) window.AudioEngine.playError();
-          setAuthError(data.msg || data.message);
-          break;
+      socket.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        handleSocketMessage(data);
+      };
 
-        case 'FULL_STATE':
-          if (data.state.systems)  setShipSystems(data.state.systems);
-          if (data.state.tracker)  { 
-            setBlips(data.state.tracker); 
-            if (data.state.sensorOnline === false) setTrackerState('offline');
-            else setTrackerState(data.state.tracker.length > 0 ? 'threat' : 'clean'); 
-          }
-          if (data.state.docs)     setDocList(data.state.docs);
-          break;
+      socket.onclose = () => {
+        console.log('[PDT] Disconnected. Retrying...');
+        setWsStatus('closed');
+        reconnectTimer = setTimeout(connect, 3000);
+      };
 
-        case 'TRACKER_UPDATE':
-          setBlips(data.blips || []);
-          const trackerSys = shipSystems['motion_tracker'];
-          if (data.sensorOnline === false || !trackerSys?.online) {
-            setTrackerState('offline');
-          } else {
-            const blips = data.blips || [];
-            setTrackerState(blips.length > 0 ? 'threat' : 'clean');
-            if (blips.length > 0 && window.AudioEngine) {
-              window.AudioEngine.playBlip(blips[0].distance || 0.5, true);
-            }
-          }
-          break;
-
-        case 'SHIP_SYSTEMS_UPDATE':
-          setShipSystems(data.payload || data.systems || {});
-          break;
-
-        case 'SYSTEM_ONLINE':
-          setShipSystems(prev => ({
-            ...prev,
-            [data.systemId]: { ...(prev[data.systemId] || {}), online: true, repairing: false, status: 'online' }
-          }));
-          break;
-
-        case 'SYSTEM_DETECTED':
-          setShipSystems(prev => ({
-            ...prev,
-            [data.systemId]: { ...(prev[data.systemId] || {}), detected: true, panelUnlocked: false }
-          }));
-          if (window.AudioEngine) window.AudioEngine.playUnlock();
-          if (navigator.vibrate) navigator.vibrate([100]);
-          break;
-
-        case 'PANEL_UNLOCKED':
-          setShipSystems(prev => ({
-            ...prev,
-            [data.systemId]: { ...(prev[data.systemId] || {}), locked: false, panelUnlocked: true }
-          }));
-          if (window.AudioEngine) window.AudioEngine.playUnlock();
-          if (navigator.vibrate) navigator.vibrate([100]);
-          break;
-
-        case 'SYSTEM_BRIEFING':
-          setActiveBriefingSystem(data.system || null);
-          break;
-
-        case 'DOC_LIST':
-          setDocList(data.docs || []);
-          break;
-
-        case 'DOCUMENT_UNLOCKED':
-          setDocList(prev => [...prev, data.doc]);
-          if (activeTab !== 'docs') setCommsHistory(prev => [...prev, {
-            time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
-            sender:'SYSTEM', text:`Novo documento desbloqueado: ${data.doc.id}`, type:'system'
-          }]);
-          if (window.AudioEngine) window.AudioEngine.playUnlock();
-          if (navigator.vibrate) navigator.vibrate([100]);
-          break;
-
-        case 'DOC_DOWNLOAD_OK':
-          setDocList(prev => prev.find(d => d.id === data.doc.id) ? prev : [...prev, data.doc]);
-          setSelectedDoc(data.doc);
-          setDocsState('reading');
-          break;
-
-        case 'DOC_ACCESS_DENIED':
-        case 'DOC_DOWNLOAD_ERR':
-          setDownloadError({ type: data.errType || 'no_access', level: data.errLevel, message: data.message });
-          break;
-
-        case 'ALERT':
-          setAlertData(data);
-          setShowAlert(true);
-          if (window.AudioEngine) window.AudioEngine.playAlert();
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-          break;
-
-        case 'MOTHER_MSG':
-        case 'MOTHER_MESSAGE':
-          setMotherVariant(data.voice === 'W-Y' ? 'wy' : 'seegson');
-          setShowMother(true);
-          if (window.AudioEngine) window.AudioEngine.playMother(data.voice === 'W-Y' ? 'wy' : 'seegson');
-          if (navigator.vibrate) navigator.vibrate([100]);
-          break;
-
-        case 'SECRET_NOTE':
-          setSecretNoteText(data.text || null);
-          setShowSecretNote(true);
-          break;
-
-        case 'COUNTDOWN_START':
-          setCountdownTime(data.duration || data.seconds || 14*60+23);
-          setShowCountdown(true);
-          break;
-
-        case 'COUNTDOWN_STOP':
-          setShowCountdown(false);
-          setCountdownTime(0);
-          break;
-
-        case 'TAB_BLOCKED':
-          setBlockedTabs(prev => ({ ...prev, [data.tab]: !!data.blocked }));
-          break;
-
-        case 'SECTOR_UPDATE':
-          setCurrentSector(data.sector || 'A1');
-          setSectorName(data.sectorName || data.sector || 'A1');
-          break;
-
-        case 'ANDROID_DATA':
-          // Handle android diagnostic data if needed
-          break;
-
-        case 'COMMS_MESSAGE':
-          setCommsHistory(prev => [...prev, data.message]);
-          if (activeTab !== 'comms') setCommsUnread(prev => prev + 1);
-          if (window.AudioEngine) window.AudioEngine.playKeystroke();
-          break;
-
-        case 'COMMS_FREQUENCY_OK':
-          setCommsUnlocked(true);
-          if (window.AudioEngine) window.AudioEngine.playUnlock();
-          break;
-          
-        case 'COMMS_FREQUENCY_FAIL':
-          // Optionally handle frequency fail state in comms
-          if (window.AudioEngine) window.AudioEngine.playError();
-          break;
-
-        case 'SILENT_VIBRATE':
-        case 'VIBRATE_SILENT':
-          if (navigator.vibrate) navigator.vibrate([100]);
-          break;
-
-        default: break;
-      }
+      setWs(socket);
     };
 
-    return () => ws.close();
+    connect();
+    return () => {
+      if (socket) socket.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
   }, []);
 
   // ── Countdown ticker ─────────────────────────────────────────────────────
@@ -326,17 +370,8 @@ const App = () => {
     }
   };
 
-  const handleLoginConfirm = (char) => {
-    setCharacter(char);
-    setLoggedIn(true);
-    setActiveTab('tracker');
-  };
-
   const handleTabChange = (tab) => {
     if (blockedTabs[tab]) return; 
-    if (tab === 'tracker' && !shipSystems['motion_tracker']?.online) {
-       // Permite ir para a aba, mas ela mostrará "OFFLINE"
-    }
     setActiveTab(tab);
     if (tab === 'sys')   setSysState('list');
     if (tab === 'docs' && docsState === 'reading') setDocsState('list');
@@ -451,7 +486,7 @@ const App = () => {
       fontFamily:"'VT323', monospace",
     }}>
       {/* Header */}
-      {loggedIn && !modeA && <PDTHeader character={character} sectorName={sectorName} />}
+      {loggedIn && !modeA && <PDTHeader character={character} sectorName={sectorName} wsStatus={wsStatus} />}
 
       {/* Countdown banner — below header, above content */}
       {loggedIn && showCountdown && <CountdownBanner time={countdownTime} />}
