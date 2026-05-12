@@ -17,7 +17,7 @@ const PDTHeader = ({ character, sectorName, wsStatus }) => (
       <span style={vt(18,C.main)}>SETOR: {sectorName || 'A1 — DESCONHECIDO'}</span>
     </div>
     <div style={mono(11,C.mid,{letterSpacing:'0.04em'})}>
-      {character ? `${character.nome.toUpperCase()} // ${character.cargo.toUpperCase()}` : 'AGUARDANDO LOGIN'}
+      {character ? `${(character.nome||'???').toUpperCase()} // ${(character.cargo||'???').toUpperCase()}` : 'AGUARDANDO LOGIN'}
     </div>
     
     {/* Network indicator */}
