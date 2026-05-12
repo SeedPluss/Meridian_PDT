@@ -60,8 +60,8 @@ const state = {
 
   // Minigame systems availability (true = unlocked by master)
   unlockedSystems: {
-    A1: { door_control: false, comms_long: false },
-    A2: { comms_long: false, comms_local: false },
+    A1: { door_control: false, comms_lr: false },
+    A2: { comms_lr: false, comms_local: false },
     B1: { life_support: false },
     MBC: { lighting_c: false },
     B_corridors: { lighting_b: false, motion_tracker: false },
@@ -81,7 +81,7 @@ const state = {
     door_control: { online: false },
     comms_local: { online: false, frequency: 0 },
     motion_tracker: { online: false },
-    comms_long: { online: false },
+    comms_lr: { online: false },
     lifepods: { online: false }
   }
 };

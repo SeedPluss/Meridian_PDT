@@ -534,11 +534,11 @@ const MASTER_SYSTEMS = [
   { id:'reactor',     label:'REACTOR',          sector:'C1'  },
   { id:'power_grid',  label:'POWER GRID',        sector:'C1'  },
   { id:'lifepods',    label:'LIFEPODS / DOCA',   sector:'C3'  },
-  { id:'door_ctrl',   label:'DOOR CONTROL',      sector:'C3'  },
+  { id:'door_control',label:'DOOR CONTROL',      sector:'C3'  },
   { id:'comms_lr',    label:'COMMS LONGA DIST.', sector:'A1'  },
   { id:'comms_local', label:'COMMS LOCAL',        sector:'A2'  },
   { id:'life_support',label:'LIFE SUPPORT',       sector:'B1'  },
-  { id:'lighting',    label:'LIGHTING',           sector:'MBC' },
+  { id:'lighting_c',  label:'LIGHTING',           sector:'MBC' },
   { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors' },
 ];
 

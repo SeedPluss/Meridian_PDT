@@ -93,8 +93,8 @@ const SYSTEMS = {
     repairEstimates: '5-8 minutos',
     minigame: 'system_stabilizer'
   },
-  comms_long: {
-    id: 'comms_long',
+  comms_lr: {
+    id: 'comms_lr',
     name: 'Comms Long Range',
     sector: 'A2',
     skill: 'Percepção',

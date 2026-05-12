@@ -4,11 +4,11 @@ const ALL_SYSTEMS = [
   { id:'reactor',     label:'REACTOR',          sector:'C1',     mg:'MinigameReactor',      online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'ALTA',   switches:6, timer:90  },
   { id:'power_grid',  label:'POWER GRID',        sector:'C1',     mg:'MinigamePowerGrid',    online:false, locked:true,  repairing:false, skill:'Tecnologia', diff:'ALTA',   switches:5, timer:75  },
   { id:'lifepods',    label:'LIFEPODS / DOCA',   sector:'C3',     mg:'MinigameLifepods',     online:false, locked:true,  repairing:false, skill:'Pilotagem',  diff:'NORMAL', switches:4, timer:90  },
-  { id:'door_ctrl',   label:'DOOR CONTROL',      sector:'C3',     mg:'MinigameDoorControl',  online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
+  { id:'door_control',label:'DOOR CONTROL',      sector:'C3',     mg:'MinigameDoorControl',  online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
   { id:'comms_lr',    label:'COMMS LONGA DIST.', sector:'A1',     mg:'MinigameCommsLR',      online:false, locked:false, repairing:true,  skill:'Percepção',  diff:'ALTA',   switches:5, timer:90  },
   { id:'comms_local', label:'COMMS LOCAL',        sector:'A2',     mg:'MinigameCommsLocal',   online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
   { id:'life_support',label:'LIFE SUPPORT',       sector:'B1',     mg:'MinigameLifeSupport',  online:false, locked:false, repairing:false, skill:'Ciência',    diff:'ALTA',   switches:6, timer:120 },
-  { id:'lighting',    label:'LIGHTING',           sector:'MBC',    mg:'MinigameLighting',     online:false, locked:false, repairing:false, skill:'Maquinaria', diff:'NORMAL', switches:3, timer:90  },
+  { id:'lighting_c',  label:'LIGHTING',           sector:'MBC',    mg:'MinigameLighting',     online:false, locked:false, repairing:false, skill:'Maquinaria', diff:'NORMAL', switches:3, timer:90  },
   { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors', mg:'MinigameMotionTracker',online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:3, timer:60  },
 ];
 
@@ -36,7 +36,7 @@ const ANDROID_DIAG = {
   reactor:      { temp:'3.2°C', integrity:34, time:'4-6 min', warning:true  },
   power_grid:   { temp:'4.8°C', integrity:41, time:'3-4 min', warning:true  },
   lifepods:     { temp:'2.1°C', integrity:67, time:'2-3 min', warning:false },
-  door_ctrl:    { temp:'3.0°C', integrity:52, time:'2-3 min', warning:false },
+  door_control: { temp:'3.0°C', integrity:52, time:'2-3 min', warning:false },
   comms_lr:     { temp:'2.4°C', integrity:28, time:'5-7 min', warning:true  },
   comms_local:  { temp:'2.7°C', integrity:61, time:'2-3 min', warning:false },
   life_support: { temp:'2.9°C', integrity:45, time:'4-5 min', warning:true  },

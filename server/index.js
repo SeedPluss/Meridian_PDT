@@ -280,7 +280,7 @@ wss.on('connection', (ws) => {
         unlockSystem(sector, systemId);
         clients.forEach((c, targetWs) => {
           if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
-            sendTo(targetWs, { type: 'NOTIFY_SYS_UNLOCKED', systemId });
+            sendTo(targetWs, { type: 'PANEL_UNLOCKED', systemId });
           }
         });
         broadcastToMasters({ type: 'FULL_STATE', state });

@@ -123,7 +123,7 @@ const App = () => {
     life_support: { online: false },
     motion_tracker: { online: false },
     comms_local: { online: false },
-    comms_long: { online: false },
+    comms_lr: { online: false },
     lighting_a: { online: false },
     lighting_b: { online: false },
     lighting_c: { online: false },
@@ -225,6 +225,20 @@ const App = () => {
         }));
         if (window.AudioEngine) window.AudioEngine.playUnlock();
         if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
+      case 'SYSTEMS_AVAILABLE':
+        if (data.systems) {
+          setShipSystems(prev => {
+            const next = { ...prev };
+            Object.keys(data.systems).forEach(id => {
+              if (data.systems[id] === true) {
+                next[id] = { ...next[id], detected: true, panelUnlocked: true, locked: false };
+              }
+            });
+            return next;
+          });
+        }
         break;
 
       case 'SYSTEM_BRIEFING':
