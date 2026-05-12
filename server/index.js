@@ -99,6 +99,23 @@ wss.on('connection', (ws) => {
 
   clients.set(ws, { role: 'player', id: 'unknown' });
 
+  // Heartbeat para o Render não derrubar a conexão
+  const pingInterval = setInterval(() => {
+    if (ws.isAlive === false) {
+      clearInterval(pingInterval);
+      return ws.terminate();
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }, 30000);
+
+  ws.on('close', () => {
+    clearInterval(pingInterval);
+    clients.delete(ws);
+    masters.delete(ws);
+    console.log('[WS] Conexão encerrada.');
+  });
+
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
