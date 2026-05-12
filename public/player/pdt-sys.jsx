@@ -9,10 +9,10 @@ const ALL_SYSTEMS = [
   { id:'comms_local', label:'COMMS LOCAL',        sector:'A2',     mg:'MinigameCommsLocal',   online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:4, timer:90  },
   { id:'life_support',label:'LIFE SUPPORT',       sector:'B1',     mg:'MinigameLifeSupport',  online:false, locked:false, repairing:false, skill:'Ciência',    diff:'ALTA',   switches:6, timer:120 },
   { id:'lighting_c',  label:'LIGHTING',           sector:'MBC',    mg:'MinigameLighting',     online:false, locked:false, repairing:false, skill:'Maquinaria', diff:'NORMAL', switches:3, timer:90  },
-  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors', mg:'MinigameMotionTracker',online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:3, timer:60  },
+  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_CORRIDORS', mg:'MinigameMotionTracker',online:false, locked:false, repairing:false, skill:'Tecnologia', diff:'NORMAL', switches:3, timer:60  },
 ];
 
-const SECTOR_ORDER = ['C1','C3','A1','A2','B1','MBC','B_corridors'];
+const SECTOR_ORDER = ['C1','C3','A1','A2','B1','MBC','B_CORRIDORS'];
 
 // Group by sector
 const bySector = SECTOR_ORDER.map(s => ({
@@ -60,7 +60,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
   const visibleSystems = ALL_SYSTEMS.filter(sys => {
     const serverSys = shipSystems && shipSystems[sys.id];
     // Sempre mostrar sistemas do setor atual do jogador
-    if (sys.sector === currentSector) return true;
+    if (sys.sector && currentSector && sys.sector.toUpperCase() === currentSector.toUpperCase()) return true;
     // Mostrar se o servidor mandou info de que está detectado, liberado ou online
     if (serverSys) {
       return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online' || serverSys.online === true;
@@ -70,7 +70,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
 
   const bySectorDynamic = SECTOR_ORDER.map(s => ({
     sector: s,
-    systems: visibleSystems.filter(sys => sys.sector === s),
+    systems: visibleSystems.filter(sys => sys.sector && s && sys.sector.toUpperCase() === s.toUpperCase()),
   })).filter(group => group.systems.length > 0);
 
   return (
