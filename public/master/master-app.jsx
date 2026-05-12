@@ -529,7 +529,6 @@ const TabAlertas = ({ players, onCommand }) => {
 
 // ── TAB: SISTEMAS ─────────────────────────────────────────────────────────────
 
-const MASTER_KEY = process.env.MASTER_KEY || 'alienfofinho123';
 
 const MASTER_SYSTEMS = [
   { id:'reactor',     label:'REACTOR',          sector:'C1'  },
