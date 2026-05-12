@@ -215,8 +215,9 @@ wss.on('connection', (ws) => {
         if (info.role !== 'master') break;
         const { documentId, targetPlayerId } = msg;
         documents.unlockDoc(documentId);
+        broadcastToMasters({ type: 'FULL_STATE', state });
         clients.forEach((c, targetWs) => {
-          if ((!targetPlayerId || c.id === targetPlayerId) && targetWs.readyState === OPEN) {
+          if ((!targetPlayerId || targetPlayerId === 'TODOS' || c.id == targetPlayerId) && targetWs.readyState === OPEN) {
             sendTo(targetWs, { type: 'NOTIFY_DOC_UNLOCKED', documentId });
             const list = documents.getIndex(c.id);
             sendTo(targetWs, { type: 'DOC_LIST', docs: list });

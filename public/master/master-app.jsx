@@ -642,6 +642,20 @@ const MasterApp = () => {
         if (s.unlockedSystems) setUnlockedSystems(s.unlockedSystems);
         if (s.unlockedDocs)    setUnlockedDocs(s.unlockedDocs);
       }
+      
+      if (msg.type === 'MASTER_TRACKER_UPDATE') {
+        setOrganism({
+          sector: msg.organism.currentSector,
+          mode: msg.organism.mode.toUpperCase(),
+          moving: msg.organism.isMoving,
+          target: msg.organism.huntTarget,
+          territory: msg.organism.territory
+        });
+        setScavengers(msg.scavengers.map(sc => ({
+          id: sc.id, name: sc.name, sector: sc.currentSector, alive: sc.alive
+        })));
+      }
+
       if (msg.type === 'COMMS_MESSAGE') {
         setChatHistory(prev => [...prev, msg.message]);
       }
