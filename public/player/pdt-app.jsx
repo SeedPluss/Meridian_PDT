@@ -503,6 +503,7 @@ const App = () => {
           shipSystems={shipSystems}
           onRepairCommand={handleRepairCommand}
           activeBriefingSystem={activeBriefingSystem}
+          currentSector={currentSector}
         />
       );
       default: return null;

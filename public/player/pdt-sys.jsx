@@ -46,7 +46,7 @@ const ANDROID_DIAG = {
 
 // ── SysList ────────────────────────────────────────────────────────────────────
 
-const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems }) => {
+const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) => {
   const mergedSystems = ALL_SYSTEMS.map(sys => {
     if (shipSystems && shipSystems[sys.id]) {
       return { ...sys, ...shipSystems[sys.id] };
@@ -277,7 +277,7 @@ const getDifficultyLevel = (character, requiredSkill) => {
   return 1; // Level 1: Treinado
 };
 
-const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand }) => {
+const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand, currentSector }) => {
   const [selectedSys,  setSelectedSys]  = React.useState(null);
   const [repairResult, setRepairResult] = React.useState(null);
   const startTimeRef = React.useRef(null);
@@ -325,7 +325,7 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
     return <SysResult success={false} system={selectedSys} onBack={()=>setSysState('list')} />;
   }
 
-  return <SysList onRepair={handleRepair} isAndroid={isAndroid} shipSystems={shipSystems} />;
+  return <SysList onRepair={handleRepair} isAndroid={isAndroid} shipSystems={shipSystems} currentSector={currentSector} />;
 };
 
 Object.assign(window, { SysScreen });
