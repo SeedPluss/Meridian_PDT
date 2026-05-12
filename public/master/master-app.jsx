@@ -618,6 +618,7 @@ const MasterApp = () => {
       
       socket.onopen = () => {
         console.log('[MASTER] Connected');
+        setDebugLog(prev => [`[${new Date().toLocaleTimeString()}] [SISTEMA] Conectado. Enviando MASTER_AUTH...`, ...prev]);
         socket.send(JSON.stringify({ type: 'MASTER_AUTH', key: 'meridian-master' }));
       };
 

@@ -102,6 +102,7 @@ wss.on('connection', (ws) => {
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+    console.log('[WS] Recebido:', msg.type, 'de', clients.get(ws)?.role);
 
     const info = clients.get(ws);
 
@@ -111,7 +112,9 @@ wss.on('connection', (ws) => {
           clients.set(ws, { role: 'master', id: 'master' });
           masters.add(ws);
           sendTo(ws, { type: 'FULL_STATE', state });
+          console.log('[AUTH] Mestre autenticado com sucesso.');
         } else {
+          console.error('[AUTH] Tentativa de autenticação Master falhou: chave incorreta.');
           sendTo(ws, { type: 'ERROR', msg: 'unauthorized' });
         }
         break;
@@ -486,9 +489,11 @@ wss.on('connection', (ws) => {
       }
 
       case 'MASTER_REQUEST_SYNC': {
-        if (info.role === 'master') {
+        if (info.role === 'master' || msg.key === MASTER_KEY) {
           sendTo(ws, { type: 'FULL_STATE', state });
-          console.log('[MASTER] Sincronismo forçado solicitado.');
+          console.log('[MASTER] Sincronismo forçado realizado.');
+        } else {
+          console.log('[MASTER] Sincronismo negado: não autorizado.');
         }
         break;
       }
