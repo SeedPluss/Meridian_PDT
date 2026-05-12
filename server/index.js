@@ -277,12 +277,22 @@ wss.on('connection', (ws) => {
       case 'MASTER_UNLOCK_SYS': {
         if (info.role !== 'master') break;
         const { sector, systemId, targetPlayerId } = msg;
+        console.log(`[DEBUG] Master desbloqueando ${systemId} para target: ${targetPlayerId}`);
+        
         unlockSystem(sector, systemId);
+        
+        let found = false;
         clients.forEach((c, targetWs) => {
-          if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
+          console.log(`[DEBUG] Checando cliente conectado: ${c.id} (role: ${c.role})`);
+          if (String(c.id).toLowerCase() === String(targetPlayerId).toLowerCase() && targetWs.readyState === OPEN) {
+            console.log(`[WS] Enviando PANEL_UNLOCKED (${systemId}) para ${c.id}`);
             sendTo(targetWs, { type: 'PANEL_UNLOCKED', systemId });
+            found = true;
           }
         });
+        
+        if (!found) console.log(`[DEBUG] Nenhuma conexão ativa encontrada para o ID: ${targetPlayerId}`);
+        
         broadcastToMasters({ type: 'FULL_STATE', state });
         break;
       }
