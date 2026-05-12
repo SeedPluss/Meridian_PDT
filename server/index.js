@@ -254,13 +254,14 @@ wss.on('connection', (ws) => {
       case 'MASTER_MOVE_PLAYER': {
         if (info.role !== 'master') break;
         const { targetPlayerId, sector } = msg;
-        if (state.players[targetPlayerId]) {
-          state.players[targetPlayerId].sector = sector;
-          state.players[targetPlayerId].lastLocationUpdate = Date.now();
+        const playerKey = Object.keys(state.players).find(k => k == targetPlayerId);
+        if (playerKey) {
+          state.players[playerKey].sector = sector;
+          state.players[playerKey].lastLocationUpdate = Date.now();
           broadcastToMasters({ type: 'FULL_STATE', state });
-          // Notify the player too if they are connected
+          // Notify the player
           clients.forEach((c, targetWs) => {
-            if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
+            if (c.id == targetPlayerId && targetWs.readyState === OPEN) {
               sendTo(targetWs, { type: 'NOTIFY_SECTOR_MOVE', sector });
             }
           });
@@ -271,13 +272,14 @@ wss.on('connection', (ws) => {
       case 'MASTER_ADJ_STRESS': {
         if (info.role !== 'master') break;
         const { targetPlayerId, delta } = msg;
-        if (state.players[targetPlayerId]) {
-          state.players[targetPlayerId].stress = Math.max(0, state.players[targetPlayerId].stress + delta);
+        const playerKey = Object.keys(state.players).find(k => k == targetPlayerId);
+        if (playerKey) {
+          state.players[playerKey].stress = Math.max(0, (state.players[playerKey].stress || 0) + delta);
           broadcastToMasters({ type: 'FULL_STATE', state });
           // Notify the player
           clients.forEach((c, targetWs) => {
-            if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
-              sendTo(targetWs, { type: 'STRESS_UPDATE', stress: state.players[targetPlayerId].stress });
+            if (c.id == targetPlayerId && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'STRESS_UPDATE', stress: state.players[playerKey].stress });
             }
           });
         }
@@ -298,9 +300,17 @@ wss.on('connection', (ws) => {
       case 'MASTER_SEND_MOTHER': {
         if (info.role !== 'master') break;
         const { targetPlayerId, voice, text } = msg;
+        const msgObj = { type: 'MOTHER_MSG', voice, text };
+
         clients.forEach((c, targetWs) => {
-          if ((!targetPlayerId || c.id === targetPlayerId || targetPlayerId === 'TODOS') && targetWs.readyState === OPEN) {
-            sendTo(targetWs, { type: 'MOTHER_MSG', voice, text });
+          const pState = state.players[c.id];
+          const isTarget = (
+            targetPlayerId === 'TODOS' || 
+            c.id == targetPlayerId || 
+            (pState && pState.sector === targetPlayerId)
+          );
+          if (isTarget && targetWs.readyState === OPEN) {
+            sendTo(targetWs, msgObj);
           }
         });
         break;
@@ -310,8 +320,9 @@ wss.on('connection', (ws) => {
         if (info.role !== 'master') break;
         const { targetPlayerId, text } = msg;
         clients.forEach((c, targetWs) => {
-          if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
-            sendTo(targetWs, { type: 'SECRET_MSG', text });
+          const isTarget = (c.id == targetPlayerId);
+          if (isTarget && targetWs.readyState === OPEN) {
+            sendTo(targetWs, { type: 'SECRET_NOTE', text });
           }
         });
         break;
@@ -321,7 +332,14 @@ wss.on('connection', (ws) => {
         if (info.role !== 'master') break;
         const { text, duration, targetPlayerId } = msg;
         clients.forEach((c, targetWs) => {
-          if ((!targetPlayerId || c.id === targetPlayerId || targetPlayerId === 'TODOS') && targetWs.readyState === OPEN) {
+          const pState = state.players[c.id];
+          const isTarget = (
+            !targetPlayerId || 
+            targetPlayerId === 'TODOS' || 
+            c.id == targetPlayerId || 
+            (pState && pState.sector === targetPlayerId)
+          );
+          if (isTarget && targetWs.readyState === OPEN) {
             sendTo(targetWs, { type: 'COUNTDOWN_START', text, duration });
           }
         });
@@ -332,7 +350,13 @@ wss.on('connection', (ws) => {
         if (info.role !== 'master') break;
         const { targetPlayerId } = msg;
         clients.forEach((c, targetWs) => {
-          if (c.id === targetPlayerId && targetWs.readyState === OPEN) {
+          const pState = state.players[c.id];
+          const isTarget = (
+            targetPlayerId === 'TODOS' || 
+            c.id == targetPlayerId || 
+            (pState && pState.sector === targetPlayerId)
+          );
+          if (isTarget && targetWs.readyState === OPEN) {
             sendTo(targetWs, { type: 'VIBRATE_SILENT' });
           }
         });
