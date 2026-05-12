@@ -146,8 +146,30 @@ wss.on('connection', (ws) => {
 
       case 'RESUME_SESSION': {
         const { characterId } = msg;
-        const pData = state.players[characterId];
+        let pData = state.players[characterId];
         console.log(`[RESUME] Tentativa de retomar: ${characterId}`);
+        
+        if (!pData) {
+          console.log(`[RESUME] Jogador ${characterId} não está no estado. Restaurando...`);
+          const char = getCharacterById(characterId);
+          if (char) {
+            state.players[characterId] = {
+              id: char.id,
+              name: char.nome,
+              role: char.cargo,
+              level: char.nivel,
+              skills: char.skills,
+              sector: 'A1',
+              stress: 0,
+              stress_max: char.stress_max,
+              isAndroid: char.isAndroid,
+              online: true,
+              lastLocationUpdate: Date.now()
+            };
+            pData = state.players[characterId];
+          }
+        }
+
         if (pData) {
           info.role = 'player';
           info.id = characterId;
@@ -157,7 +179,8 @@ wss.on('connection', (ws) => {
           broadcastToMasters({ type: 'FULL_STATE', state });
           console.log(`[RESUME] SUCESSO: ${pData.name} retomou conexão.`);
         } else {
-          console.log(`[RESUME] FALHA: Dados não encontrados para ${characterId}`);
+          console.log(`[RESUME] FALHA: ID inválido ${characterId}`);
+          sendTo(ws, { type: 'SESSION_ERR', msg: 'Sessão expirada. Faça login novamente.' });
         }
         break;
       }

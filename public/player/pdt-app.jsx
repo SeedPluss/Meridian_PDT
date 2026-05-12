@@ -160,6 +160,13 @@ const App = () => {
         console.log('[PDT] Session resumed for', data.character.nome);
         break;
 
+      case 'SESSION_ERR':
+        setLoggedIn(false);
+        setCharacter(null);
+        setAuthError(data.msg);
+        localStorage.removeItem('meridian_char');
+        break;
+
       case 'LOGIN_FAIL':
       case 'LOGIN_ERR':
         if (window.AudioEngine) window.AudioEngine.playError();
