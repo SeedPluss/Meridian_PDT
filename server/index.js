@@ -276,6 +276,11 @@ wss.on('connection', (ws) => {
         
         // Special case: Motion Tracker unlocks the tab
         if (systemId === 'motion_tracker' && success) {
+          // Se for o motion tracker, libera globalmente
+          if (state.systems && state.systems.motion_tracker) {
+            state.systems.motion_tracker.online = true;
+          }
+          broadcast({ type: 'TRACKER_STATE', state: 'online' });
           // Notify the ship
           clients.forEach((c, targetWs) => {
             if (targetWs.readyState === OPEN) {
