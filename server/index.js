@@ -15,6 +15,7 @@ documents.loadDocuments();
 
 const PORT = process.env.PORT || 3000;
 const MASTER_KEY = process.env.MASTER_KEY || 'meridian-master';
+console.log('[DEBUG] Sistema iniciado. Chave Master configurada:', MASTER_KEY);
 
 const app = express();
 app.use(express.json());
