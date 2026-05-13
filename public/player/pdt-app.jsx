@@ -245,8 +245,11 @@ const App = () => {
         if (data.systems) {
           setShipSystems(prev => {
             const next = { ...prev };
-            Object.keys(data.systems).forEach(id => {
-              if (data.systems[id] === true) {
+            const sysList = Array.isArray(data.systems) ? data.systems : Object.keys(data.systems);
+            
+            sysList.forEach(id => {
+              const isAvailable = Array.isArray(data.systems) ? true : data.systems[id] === true;
+              if (isAvailable) {
                 next[id] = { ...next[id], detected: true, panelUnlocked: true, locked: false };
               }
             });

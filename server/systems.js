@@ -46,7 +46,7 @@ const SYSTEMS = {
   lighting_a: {
     id: 'lighting_a',
     name: 'Lighting - Deck A',
-    sector: 'A_corridors',
+    sector: 'A3',
     skill: 'Tecnologia',
     difficulty: 'NORMAL',
     description: 'Restauração de cabos e reconfiguração de fusíveis de luz.',
@@ -96,7 +96,7 @@ const SYSTEMS = {
   comms_lr: {
     id: 'comms_lr',
     name: 'Comms Long Range',
-    sector: 'A2',
+    sector: 'A1',
     skill: 'Percepção',
     difficulty: 'ALTA',
     description: 'Calibração estelar e alinhamento de antena de longa distância.',

@@ -10,9 +10,11 @@ const ALL_SYSTEMS = [
   { id: 'life_support', label: 'LIFE SUPPORT', sector: 'B1', mg: 'MinigameLifeSupport', online: false, locked: false, repairing: false, skill: 'Ciência', diff: 'ALTA', switches: 6, timer: 120 },
   { id: 'lighting_c', label: 'LIGHTING', sector: 'MBC', mg: 'MinigameLighting', online: false, locked: false, repairing: false, skill: 'Maquinaria', diff: 'NORMAL', switches: 3, timer: 90 },
   { id: 'motion_tracker', label: 'MOTION TRACKER', sector: 'MAB', mg: 'MinigameMotionTracker', online: false, locked: false, repairing: false, skill: 'Tecnologia', diff: 'NORMAL', switches: 3, timer: 60 },
+  { id: 'lighting_a', label: 'LIGHTING DECK A', sector: 'A3', mg: 'MinigameLighting', online: false, locked: false, repairing: false, skill: 'Maquinaria', diff: 'NORMAL', switches: 3, timer: 90 },
+  { id: 'lighting_b', label: 'LIGHTING DECK B', sector: 'MAB', mg: 'MinigameLighting', online: false, locked: false, repairing: false, skill: 'Maquinaria', diff: 'NORMAL', switches: 3, timer: 90 },
 ];
 
-const SECTOR_ORDER = ['C1', 'C3', 'A1', 'A2', 'B1', 'MBC', 'MAB'];
+const SECTOR_ORDER = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'MAB', 'MBC', 'C1', 'C2', 'C3'];
 
 // Group by sector
 const bySector = SECTOR_ORDER.map(s => ({

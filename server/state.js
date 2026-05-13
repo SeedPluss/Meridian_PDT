@@ -3,8 +3,8 @@
 
 // Defining base temperatures per sector
 const sectorBaseTemperature = {
-  A1: 22.0, A2: 22.0, A_corridors: 21.0,
-  B1: 22.0, MAB: 20.0,
+  A1: 22.0, A2: 22.0, A3: 21.0,
+  B1: 22.0, B2: 21.0, B3: 21.0, MAB: 20.0,
   MBC: 19.0, // Mezzanine
   C1: 28.0, C2: 7.0, C3: 15.0 // C2 is cargo hold, naturally colder
 };
@@ -15,13 +15,15 @@ const state = {
   uptime: 0,
   accessLevel: 1,
 
-  // Setores da nave (simplificado para o novo layout)
+  // Setores da nave (unificado com Master e PDT)
   sectors: {
     A1: { name: 'Bridge', deck: 'A' },
     A2: { name: 'Comms Room', deck: 'A' },
-    A_corridors: { name: 'A-Deck Corridors', deck: 'A' },
+    A3: { name: 'A-Deck Corridors', deck: 'A' },
     B1: { name: 'Medbay / Crew Quarters', deck: 'B' },
-    MAB: { name: 'B-Deck Corridors', deck: 'B' },
+    B2: { name: 'B-Deck Living', deck: 'B' },
+    B3: { name: 'B-Deck Storage', deck: 'B' },
+    MAB: { name: 'Motion Array / Corridors', deck: 'M' },
     MBC: { name: 'Mezzanine B-C', deck: 'M' },
     C1: { name: 'Engineering', deck: 'C' },
     C2: { name: 'Cargo Hold', deck: 'C' },
@@ -60,13 +62,16 @@ const state = {
 
   // Minigame systems availability (true = unlocked by master)
   unlockedSystems: {
-    A1: { door_control: false, comms_lr: false },
-    A2: { comms_lr: false, comms_local: false },
+    A1: { comms_lr: false },
+    A2: { comms_local: false },
+    A3: { lighting_a: false },
     B1: { life_support: false },
-    MBC: { lighting_c: false },
+    B2: {},
+    B3: {},
     MAB: { lighting_b: false, motion_tracker: false },
-    A_corridors: { lighting_a: false },
+    MBC: { lighting_c: false },
     C1: { reactor: false, power_grid: false },
+    C2: {},
     C3: { lifepods: false, door_control: false }
   },
 

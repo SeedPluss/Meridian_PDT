@@ -539,7 +539,9 @@ const MASTER_SYSTEMS = [
   { id:'comms_local', label:'COMMS LOCAL',        sector:'A2'  },
   { id:'life_support',label:'LIFE SUPPORT',       sector:'B1'  },
   { id:'lighting_c',  label:'LIGHTING',           sector:'MBC' },
-  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'B_corridors' },
+  { id:'lighting_a',  label:'LIGHTING DECK A', sector:'A3'  },
+  { id:'lighting_b',  label:'LIGHTING DECK B', sector:'MAB' },
+  { id:'motion_tracker', label:'MOTION TRACKER',     sector:'MAB' },
 ];
 
 const TabSistemas = ({ players, unlockedSystems, onCommand }) => {
