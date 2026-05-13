@@ -181,7 +181,7 @@ wss.on('connection', (ws) => {
             character: { ...char, isAndroid: undefined } 
           });
           sendTo(ws, { type: 'TRACKER_STATE', state: state.systems.motion_tracker.online ? 'online' : 'offline' });
-          const currentSector = state.players[msg.username].sector;
+          const currentSector = state.players[char.id].sector;
           sendTo(ws, { type: 'SECTOR_UPDATE', sector: currentSector, sectorName: state.sectors[currentSector]?.name });
           sendTo(ws, { type: 'SYSTEMS_AVAILABLE', systems: state.unlockedSystems[currentSector] });
           broadcastToMasters({ type: 'FULL_STATE', state });
@@ -214,6 +214,7 @@ wss.on('connection', (ws) => {
               stress: 0,
               stress_max: char.stress_max,
               isAndroid: char.isAndroid,
+              downloadedDocs: [],
               online: true,
               lastLocationUpdate: Date.now()
             };
