@@ -109,7 +109,7 @@ function getBlipsForPlayer(playerId) {
         entity: 'organism',
         sector: xenoRelation,
         angle: calculateAngle(player.sector, state.organism.currentSector),
-        distance: xenoRelation === 'same' ? 0.3 + Math.random() * 0.3 : 0.7 + Math.random() * 0.2,
+        distance: xenoRelation === 'same' ? 0.08 + Math.random() * 0.32 : 0.45 + Math.random() * 0.5,
         moving: state.organism.isMoving
       });
     }
@@ -124,7 +124,7 @@ function getBlipsForPlayer(playerId) {
         id: scavenger.id,
         sector: relation,
         angle: calculateAngle(player.sector, scavenger.currentSector),
-        distance: relation === 'same' ? 0.2 + Math.random() * 0.3 : 0.6 + Math.random() * 0.3
+        distance: relation === 'same' ? 0.1 + Math.random() * 0.35 : 0.5 + Math.random() * 0.45
       });
     }
   });
@@ -139,7 +139,7 @@ function getBlipsForPlayer(playerId) {
         id: other.id,
         sector: relation,
         angle: calculateAngle(player.sector, other.sector),
-        distance: relation === 'same' ? 0.2 + Math.random() * 0.3 : 0.6 + Math.random() * 0.3
+        distance: relation === 'same' ? 0.1 + Math.random() * 0.35 : 0.5 + Math.random() * 0.45
       });
     }
   });

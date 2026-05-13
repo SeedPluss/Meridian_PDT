@@ -1,14 +1,15 @@
 // pdt-docs.jsx — Documents screen: ID input + download animation + list + reader
 
-const DOC_SECTORS = ['B1', 'B2', 'C3', 'A2', 'COMMS-LR'];
-
 const groupBySector = (docs) => {
   const map = {};
   docs.forEach(d => {
-    if (!map[d.sector]) map[d.sector] = [];
-    map[d.sector].push(d);
+    const s = d.sector || 'DESCONHECIDO';
+    if (!map[s]) map[s] = [];
+    map[s].push(d);
   });
-  return DOC_SECTORS.filter(s => map[s]).map(s => ({ sector: s, docs: map[s] }));
+  // Sort sectors alphabetically but keep COMMS/Bridge/etc at top if preferred? 
+  // Let's just sort them for consistency.
+  return Object.keys(map).sort().map(s => ({ sector: s, docs: map[s] }));
 };
 
 // ── Download animation ─────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ const groupBySector = (docs) => {
 const DocDownload = ({ docId, onComplete, onError }) => {
   const [pct,  setPct]  = React.useState(0);
   const [msg,  setMsg]  = React.useState('INICIANDO DOWNLOAD...');
+  const [done, setDone] = React.useState(false);
 
   React.useEffect(() => {
     const msgs = ['LOCALIZANDO ARQUIVO...', `BAIXANDO ${docId}...`, 'DECRIPTANDO...', 'CONCLUÍDO'];
@@ -27,9 +29,9 @@ const DocDownload = ({ docId, onComplete, onError }) => {
       setMsg(msgs[Math.min(msgs.length-1, Math.floor(p/33))]);
       if (p >= 100) {
         clearInterval(iv);
-        setTimeout(() => onComplete(docId), 500);
+        setDone(true);
       }
-    }, 160);
+    }, 120);
     return () => clearInterval(iv);
   }, []);
 
@@ -44,7 +46,18 @@ const DocDownload = ({ docId, onComplete, onError }) => {
         {bar(pct)}  {pct}%
       </div>
       <div style={mono(10, C.dim)}>{msg}</div>
-      <div style={mono(9, C.dim, { opacity:0.5 })}>SEEGSON FILE SYSTEM v4.2</div>
+      
+      {done && (
+        <div style={{ marginTop:'20px', animation:'pulse 1.5s infinite' }}>
+          <PDTButton variant="bright" onClick={() => onComplete(docId)}>
+            [ ABRIR DOCUMENTO ]
+          </PDTButton>
+        </div>
+      )}
+
+      <div style={mono(9, C.dim, { opacity:0.5, marginTop: done ? '10px' : '40px' })}>
+        SEEGSON FILE SYSTEM v4.2
+      </div>
     </div>
   );
 };

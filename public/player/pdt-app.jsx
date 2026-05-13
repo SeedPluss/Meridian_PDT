@@ -422,14 +422,19 @@ const App = () => {
     if (blockedTabs[tab]) return; 
     setActiveTab(tab);
     if (tab === 'sys')   setSysState('list');
-    if (tab === 'docs' && docsState === 'reading') setDocsState('list');
+    if (tab === 'docs') {
+      setDocsState('list');
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'DOC_LIST_REQUEST' }));
+      }
+    }
     if (tab === 'comms') setCommsUnread(0);
   };
 
   const handleDocDownload = (docId) => {
     setDownloadError(null);
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'REQUEST_DOC', docId }));
+      ws.send(JSON.stringify({ type: 'DOC_DOWNLOAD', documentId: docId }));
     }
   };
 

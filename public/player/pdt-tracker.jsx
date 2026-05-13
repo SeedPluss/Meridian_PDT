@@ -1,5 +1,20 @@
 // pdt-tracker.jsx — Motion Tracker screen (Radar canvas + 3 sub-states)
 
+const getDirectionLabel = (angle) => {
+  // 0 is Up/North, clockwise
+  if (angle === undefined) return '---';
+  const a = (angle + 360) % 360;
+  if (a >= 337.5 || a < 22.5)  return 'NORTE';
+  if (a >= 22.5  && a < 67.5)  return 'NORDESTE';
+  if (a >= 67.5  && a < 112.5) return 'LESTE';
+  if (a >= 112.5 && a < 157.5) return 'SUDESTE';
+  if (a >= 157.5 && a < 202.5) return 'SUL';
+  if (a >= 202.5 && a < 247.5) return 'SUDOESTE';
+  if (a >= 247.5 && a < 292.5) return 'OESTE';
+  if (a >= 292.5 && a < 337.5) return 'NOROESTE';
+  return '---';
+};
+
 const RadarCanvas = ({ threatActive, blips }) => {
   const canvasRef = React.useRef(null);
   const rafRef    = React.useRef(null);
@@ -30,9 +45,10 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.fillStyle = '#000a04';
       ctx.fillRect(0, 0, S, S);
 
-      // Concentric rings
-      [0.25, 0.5, 0.75, 1.0].forEach((f, i) => {
-        ctx.globalAlpha = i === 3 ? 0.7 : 0.3;
+      // Concentric rings (factors for 1m, 5m, 10m, 15m)
+      const ringFactors = [1/15, 5/15, 10/15, 1.0];
+      ringFactors.forEach((f, i) => {
+        ctx.globalAlpha = i === 3 ? 0.7 : 0.25;
         ctx.strokeStyle = '#006629';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -41,7 +57,7 @@ const RadarCanvas = ({ threatActive, blips }) => {
       });
 
       // Cross-hairs
-      ctx.globalAlpha = 0.18;
+      ctx.globalAlpha = 0.12;
       ctx.strokeStyle = '#006629';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 6]);
@@ -86,12 +102,10 @@ const RadarCanvas = ({ threatActive, blips }) => {
       const currentBlips = Array.isArray(blipsRef.current) ? blipsRef.current : [];
       if (currentBlips.length > 0) {
         currentBlips.forEach(blip => {
-          // Calculate blip position based on distance and angle
-          // Assuming blip has { distance, angle } where angle is in degrees
-          // Or just use random pulse for now if structure is unknown, but we should map it.
-          // Fallback to random if structure doesn't match
-          const bAngle = blip.angle !== undefined ? (blip.angle * Math.PI) / 180 : -0.52;
-          const bDist = blip.distance !== undefined ? (blip.distance / 100) * R : R * 0.58;
+          // Angle mapping: Server 0 deg = Up (canvas -90 deg or -PI/2)
+          const bAngle = blip.angle !== undefined ? (blip.angle - 90) * (Math.PI / 180) : 0;
+          // Distance mapping: Server 0.0-1.0 maps directly to R
+          const bDist = blip.distance !== undefined ? blip.distance * R : R * 0.5;
           
           const tx = cx + Math.cos(bAngle) * bDist;
           const ty = cy + Math.sin(bAngle) * bDist;
@@ -102,11 +116,12 @@ const RadarCanvas = ({ threatActive, blips }) => {
           ctx.shadowColor = '#ff2a2a';
           ctx.shadowBlur  = 14;
           ctx.fillStyle   = '#ff2a2a';
-          ctx.globalAlpha = Math.max(0.2, 1 - (bDist / R)); // Fade out further blips a bit, or keep fixed
-          ctx.beginPath(); ctx.arc(tx, ty, 5.5, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 0.35;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
+          
+          ctx.globalAlpha = 0.45;
           ctx.strokeStyle = '#ff2a2a';
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.5;
           ctx.shadowBlur = 0;
           ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
           ctx.restore();
@@ -128,13 +143,13 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.lineWidth   = 2;
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
 
-      stateRef.current.angle = (angle + 0.012) % (Math.PI * 2);
+      stateRef.current.angle = (angle + 0.015) % (Math.PI * 2);
       rafRef.current = requestAnimationFrame(draw);
     };
 
     draw();
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [threatActive]); // Removed blips from dependencies to avoid restarting loop, we use blipsRef instead
+  }, [threatActive]);
 
   return (
     <canvas ref={canvasRef} width={260} height={260}
@@ -147,12 +162,17 @@ const RadarCanvas = ({ threatActive, blips }) => {
 const TrackerScreen = ({ trackerState, blips, currentSector, goToSys }) => {
   const online   = trackerState !== 'offline';
   const threat   = trackerState === 'threat';
+  
+  // Find closest blip for text display
+  const closestBlip = Array.isArray(blips) && blips.length > 0 
+    ? blips.reduce((prev, curr) => (prev.distance < curr.distance) ? prev : curr) 
+    : null;
 
   // ── Offline sub-state ────────────────────────────────────
   if (!online) return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px 6px' }}>
-        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'B1'}</span>
+        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'A3'}</span>
         <span style={vt(18, C.dim)}>
           <StatusDot online={false} /> OFFLINE
         </span>
@@ -176,7 +196,7 @@ const TrackerScreen = ({ trackerState, blips, currentSector, goToSys }) => {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Sub-header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 14px 6px' }}>
-        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'B1'}</span>
+        <span style={vt(20, C.main)}>TRACKER — {currentSector || 'A3'}</span>
         <span style={{ ...vt(18, C.bright), textShadow: glow(C.bright) }}>
           <StatusDot online large /> ATIVA
         </span>
@@ -192,10 +212,12 @@ const TrackerScreen = ({ trackerState, blips, currentSector, goToSys }) => {
 
       {/* Status read-out */}
       <div style={{ padding: '10px 14px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {threat ? (
+        {threat && closestBlip ? (
           <>
-            <div style={mono(11, C.amber, { letterSpacing: '0.05em' })}>ÚLTIMA DETECÇÃO: 00:08 atrás</div>
-            <div style={{ ...vt(22, C.red), textShadow: glow(C.red) }}>DIREÇÃO: NORDESTE — 12m</div>
+            <div style={mono(11, C.amber, { letterSpacing: '0.05em' })}>ÚLTIMA DETECÇÃO: recente</div>
+            <div style={{ ...vt(22, C.red), textShadow: glow(C.red) }}>
+              DIREÇÃO: {getDirectionLabel(closestBlip.angle)} — {Math.max(1, Math.round(closestBlip.distance * 15))}m
+            </div>
           </>
         ) : (
           <>
