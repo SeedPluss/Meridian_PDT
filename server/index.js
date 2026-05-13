@@ -263,18 +263,20 @@ wss.on('connection', (ws) => {
         const doc = documents.getDoc(documentId);
         
         if (!doc) {
-          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'not_found' } });
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', errType: 'not_found' });
           break;
         }
 
         const hasAccess = documents.getDocumentAccess(info.id, documentId);
         const isUnlocked = state.unlockedDocs.includes(documentId);
-        const isAndroid = state.players[info.id]?.isAndroid;
+        const player = state.players[info.id];
+        const isAndroid = player?.isAndroid || false;
+
+        console.log(`[DOC_DOWNLOAD] Player:${info.id} Doc:${documentId} hasAccess:${hasAccess} isUnlocked:${isUnlocked} isAndroid:${isAndroid}`);
 
         // Only allow download if it's unlocked by Master OR player is Android (bypass)
         if (hasAccess && (isUnlocked || isAndroid)) {
           // Add to player's personal list
-          const player = state.players[info.id];
           if (player && !player.downloadedDocs.includes(documentId)) {
             player.downloadedDocs.push(documentId);
           }
@@ -285,9 +287,11 @@ wss.on('connection', (ws) => {
           const list = documents.getIndex(info.id);
           sendTo(ws, { type: 'DOC_LIST', docs: list });
         } else if (!isUnlocked && !isAndroid) {
-          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'not_found' } });
+          console.log(`[DOC_DOWNLOAD] Falha: Documento não liberado pelo mestre.`);
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', errType: 'not_found' });
         } else {
-          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'no_access', level: doc.level } });
+          console.log(`[DOC_DOWNLOAD] Falha: Credencial insuficiente. Req:${doc.level} Player:${player?.level}`);
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', errType: 'no_access', errLevel: doc.level });
         }
         break;
       }

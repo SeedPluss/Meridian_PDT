@@ -63,8 +63,10 @@ function getDocumentAccess(playerId, documentId) {
   const doc = _docs.get(documentId);
   if (!doc || !player) return false;
 
+  console.log(`[ACCESS_CHECK] Player:${playerId} (Lvl:${player.level}, Android:${player.isAndroid}) Doc:${documentId} (Lvl:${doc.level})`);
+
   if (player.isAndroid) return true;
-  return doc.level <= player.level;
+  return Number(doc.level) <= Number(player.level);
 }
 
 function getDoc(id) {
