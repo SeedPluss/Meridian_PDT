@@ -231,18 +231,18 @@ const TabTracker = ({ players, organism, scavengers, onCommand, setOrganism }) =
 // ── TAB: DOCS ─────────────────────────────────────────────────────────────────
 
 const MASTER_DOCS = [
-  { id:'MT-0934', title:'Log de manutenção', sector:'B1', level:1 },
-  { id:'CG-C3-7', title:'Manifesto de carga', sector:'C3', level:1 },
-  { id:'PARK-01', title:'Diário pessoal — Park', sector:'B2', level:1 },
-  { id:'DOC-WY06', title:'Transmissão W-Y', sector:'COMMS', level:2 },
-  { id:'REEVES-47', title:'Anotações técnicas', sector:'A2', level:2 },
+  { id:'maintenance-log-w16', title:'LOG MANUTENÇÃO W16', sector:'B1', level:1 },
+  { id:'cargo-manifest-2183', title:'MANIFESTO CARGA 2183', sector:'C3', level:1 },
+  { id:'ops-log-week14',      title:'LOG OPERAÇÕES W14',  sector:'C1', level:1 },
+  { id:'doc-wy-secret',      title:'TRANSMISSÃO W-Y 🔒',  sector:'COMMS', level:2 },
+  { id:'bioweapons-assessment', title:'AVALIAÇÃO BIO-ARMA', sector:'A2', level:3 },
 ];
 
 const BATCH_EVENTS = [
-  { label:'LOCKDOWN ATIVA',          docs:['DOC-WY06'], players:'todos' },
-  { label:'CONTÊINER W-Y → TODOS',   docs:['CG-C3-7'],  players:'todos' },
-  { label:'SAQUEADORES CHEGAM',       docs:['PARK-01'],  players:'todos' },
-  { label:'ORGANISMO CONFIRMADO',     docs:['MT-0934'],  players:'todos' },
+  { label:'LOCKDOWN ATIVA',          docs:['doc-wy-secret'],           players:'todos' },
+  { label:'MANIFESTO CARGA → TODOS', docs:['cargo-manifest-2183'],     players:'todos' },
+  { label:'ORDEM CLASSIFICADA',      docs:['classified-order-xo7'],    players:'todos' },
+  { label:'LOGS DE ENGENHARIA',      docs:['maintenance-log-w16'],     players:'todos' },
 ];
 
 const TabDocs = ({ players, unlockedDocs, onCommand }) => {

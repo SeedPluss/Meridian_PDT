@@ -66,6 +66,19 @@ function sendTo(ws, msg) {
   if (ws.readyState === OPEN) ws.send(JSON.stringify(msg));
 }
 
+function findTargetClient(targetId) {
+  if (!targetId || targetId === 'TODOS') return null;
+  for (const [ws, info] of clients.entries()) {
+    // Check by string ID (charId)
+    if (String(info.id).toLowerCase() === String(targetId).toLowerCase()) return { ws, info };
+    
+    // Check by pdtId from characters.js
+    const char = getCharacterById(info.id);
+    if (char && String(char.pdtId) === String(targetId)) return { ws, info };
+  }
+  return null;
+}
+
 // Conectar as funções do tracker.js aos broadcasters do index.js
 setBroadcasters(
   () => {
@@ -291,6 +304,23 @@ wss.on('connection', (ws) => {
           });
         }
 
+        // Special case: Comms Local unlocks Comms LR
+        if (systemId === 'comms_local' && success) {
+          console.log('[DEBUG] Comms Local consertado! Liberando Comms Long Range...');
+          if (state.unlockedSystems.A1) {
+            state.unlockedSystems.A1.comms_lr = true;
+            // Notify players in A1
+            clients.forEach((c, targetWs) => {
+              const p = state.players[c.id];
+              if (p && p.sector === 'A1' && targetWs.readyState === OPEN) {
+                sendTo(targetWs, { type: 'SYSTEMS_AVAILABLE', systems: ['comms_lr'] });
+              }
+              // Also send notification
+              sendTo(targetWs, { type: 'SYSTEM_DETECTED', systemId: 'comms_lr' });
+            });
+          }
+        }
+
         if (!success && state.players[info.id]) {
           state.players[info.id].stress += 1;
         }
@@ -306,19 +336,23 @@ wss.on('connection', (ws) => {
         
         unlockSystem(sector, systemId);
         
-        let found = false;
-        clients.forEach((c, targetWs) => {
-          console.log(`[DEBUG] Checando cliente conectado: ${c.id} (role: ${c.role})`);
-          if (String(c.id).toLowerCase() === String(targetPlayerId).toLowerCase() && targetWs.readyState === OPEN) {
-            console.log(`[WS] Enviando PANEL_UNLOCKED (${systemId}) para ${c.id}`);
-            sendTo(targetWs, { type: 'PANEL_UNLOCKED', systemId });
-            // Força a atualização da lista de sistemas disponíveis para garantir a exibição
-            sendTo(targetWs, { type: 'SYSTEMS_AVAILABLE', systems: [systemId] });
-            found = true;
+        if (targetPlayerId === 'TODOS') {
+          clients.forEach((c, targetWs) => {
+            if (targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'PANEL_UNLOCKED', systemId });
+              sendTo(targetWs, { type: 'SYSTEMS_AVAILABLE', systems: [systemId] });
+            }
+          });
+        } else {
+          const target = findTargetClient(targetPlayerId);
+          if (target) {
+            console.log(`[WS] Enviando PANEL_UNLOCKED (${systemId}) para ${target.info.id}`);
+            sendTo(target.ws, { type: 'PANEL_UNLOCKED', systemId });
+            sendTo(target.ws, { type: 'SYSTEMS_AVAILABLE', systems: [systemId] });
+          } else {
+            console.log(`[DEBUG] Nenhuma conexão ativa encontrada para o ID: ${targetPlayerId}`);
           }
-        });
-        
-        if (!found) console.log(`[DEBUG] Nenhuma conexão ativa encontrada para o ID: ${targetPlayerId}`);
+        }
         
         broadcastToMasters({ type: 'FULL_STATE', state });
         break;
@@ -327,15 +361,31 @@ wss.on('connection', (ws) => {
       case 'MASTER_UNLOCK_DOC': {
         if (info.role !== 'master') break;
         const { documentId, targetPlayerId } = msg;
+        console.log(`[DEBUG] Master desbloqueando documento ${documentId} para: ${targetPlayerId}`);
+        
         documents.unlockDoc(documentId);
         broadcastToMasters({ type: 'FULL_STATE', state });
-        clients.forEach((c, targetWs) => {
-          if ((!targetPlayerId || targetPlayerId === 'TODOS' || c.id == targetPlayerId) && targetWs.readyState === OPEN) {
-            sendTo(targetWs, { type: 'NOTIFY_DOC_UNLOCKED', documentId });
-            const list = documents.getIndex(c.id);
-            sendTo(targetWs, { type: 'DOC_LIST', docs: list });
+        
+        if (!targetPlayerId || targetPlayerId === 'TODOS') {
+          clients.forEach((c, targetWs) => {
+            if (targetWs.readyState === OPEN) {
+              const doc = documents.getDoc(documentId);
+              sendTo(targetWs, { type: 'DOCUMENT_UNLOCKED', doc });
+              const list = documents.getIndex(c.id);
+              sendTo(targetWs, { type: 'DOC_LIST', docs: list });
+            }
+          });
+        } else {
+          const target = findTargetClient(targetPlayerId);
+          if (target) {
+            const doc = documents.getDoc(documentId);
+            sendTo(target.ws, { type: 'DOCUMENT_UNLOCKED', doc });
+            const list = documents.getIndex(target.info.id);
+            sendTo(target.ws, { type: 'DOC_LIST', docs: list });
+          } else {
+            console.log(`[DEBUG] Documento: Nenhuma conexão ativa para ${targetPlayerId}`);
           }
-        });
+        }
         break;
       }
 

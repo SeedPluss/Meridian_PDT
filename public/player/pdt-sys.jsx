@@ -61,8 +61,11 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
   // Let's modify the filter to ONLY show systems that the server has told us about, OR if it's explicitly online initially (though server should handle that).
   const visibleSystems = ALL_SYSTEMS.filter(sys => {
     const serverSys = shipSystems && shipSystems[sys.id];
-    // Sempre mostrar sistemas do setor atual do jogador
-    if (sys.sector && currentSector && sys.sector.toUpperCase() === currentSector.toUpperCase()) return true;
+    // Sempre mostrar sistemas do setor atual do jogador (exceto comms_lr que depende de progresso)
+    if (sys.sector && currentSector && sys.sector.toUpperCase() === currentSector.toUpperCase()) {
+      if (sys.id === 'comms_lr') return !!(serverSys && serverSys.detected);
+      return true;
+    }
     // Mostrar se o servidor mandou info de que está detectado, liberado ou online
     if (serverSys) {
       return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online' || serverSys.online === true;
