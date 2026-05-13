@@ -150,22 +150,31 @@ const DocsList = ({ docs, idInput, setIdInput, onDownload, onSelect }) => {
 // ── Doc reader (Mode A) ────────────────────────────────────────────────────────
 
 const DocReader = ({ doc, allDocs, onBack }) => {
-  const idx   = allDocs.indexOf(doc);
+  const idx   = allDocs.findIndex(d => d.id === doc.id);
   const total = allDocs.length;
+  
+  // Safety: ensure content is renderable (not a raw object)
+  const renderContent = () => {
+    if (!doc.content) return 'NENHUM CONTEÚDO DISPONÍVEL.';
+    if (typeof doc.content === 'string') return doc.content;
+    if (doc.content.body) return doc.content.body;
+    return JSON.stringify(doc.content, null, 2);
+  };
+
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minHeight:0 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
         padding:'6px 14px', flexShrink:0, borderBottom:`1px solid ${C.dim}`, minHeight:'44px' }}>
         <button onClick={onBack} style={{ ...vt(20, C.mid), background:'transparent', border:'none',
           cursor:'pointer', padding:'4px 0', minHeight:'44px' }}>← VOLTAR</button>
-        <span style={mono(11, C.dim)}>DOCS — {idx+1}/{total}</span>
+        <span style={mono(11, C.dim)}>DOCS — {idx >= 0 ? idx+1 : '?'}/{total}</span>
       </div>
-      <div style={{ flex:1, overflowY:'auto', padding:'16px 14px 20px', scrollbarWidth:'none' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 14px 20px', scrollbarWidth:'none', minHeight:0 }}>
         <div style={vt(22, C.bright, { textShadow:glow(C.bright), marginBottom:'2px' })}>{doc.title}</div>
         <div style={mono(11, C.dim, { marginBottom:'12px' })}>{doc.author || 'SISTEMA'} // {doc.date || '---'}</div>
         <AsciiRule />
-        <pre style={{ ...vt(20, C.main), whiteSpace:'pre-wrap', wordBreak:'break-word',
-          lineHeight:1.65, margin:'12px 0 0' }}>{doc.content?.body || doc.content || 'NENHUM CONTEÚDO DISPONÍVEL.'}</pre>
+        <div style={{ ...vt(20, C.main), whiteSpace:'pre-wrap', wordBreak:'break-word',
+          lineHeight:1.65, margin:'12px 0 0' }}>{renderContent()}</div>
       </div>
     </div>
   );
