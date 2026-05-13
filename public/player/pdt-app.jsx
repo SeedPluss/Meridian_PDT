@@ -175,20 +175,34 @@ const App = () => {
         break;
 
       case 'FULL_STATE':
-        if (data.state.systems)  setShipSystems(data.state.systems);
-        if (data.state.tracker)  { 
-          setBlips(data.state.tracker); 
-          if (data.state.sensorOnline === false) setTrackerState('offline');
-          else setTrackerState(data.state.tracker.length > 0 ? 'threat' : 'clean'); 
+        if (data.state.systems) setShipSystems(data.state.systems);
+        if (data.state.docs) setDocList(data.state.docs);
+        
+        // Determina o estado do radar baseado no sistema de motion tracker
+        if (data.state.systems && data.state.systems.motion_tracker) {
+          const isOnline = data.state.systems.motion_tracker.online;
+          if (!isOnline) {
+            const now = Date.now();
+            const lastRepair = window.lastTrackerRepair || 0;
+            if (now - lastRepair > 5000) {
+              setTrackerState('offline');
+            }
+          } else {
+            setTrackerState((data.state.tracker && data.state.tracker.length > 0) ? 'threat' : 'clean');
+          }
         }
-        if (data.state.docs)     setDocList(data.state.docs);
+        if (data.state.tracker) setBlips(data.state.tracker);
         break;
 
       case 'TRACKER_UPDATE':
         setBlips(data.blips || []);
-        const trackerSys = shipSystems['motion_tracker'];
-        if (data.sensorOnline === false || !trackerSys?.online) {
-          setTrackerState('offline');
+        if (data.sensorOnline === false) {
+          // Só desativa se não tivermos consertado recentemente (escudo de 5s)
+          const now = Date.now();
+          const lastRepair = window.lastTrackerRepair || 0;
+          if (now - lastRepair > 5000) {
+            setTrackerState('offline');
+          }
         } else {
           const blips = data.blips || [];
           setTrackerState(blips.length > 0 ? 'threat' : 'clean');
@@ -426,6 +440,13 @@ const App = () => {
         ...prev,
         [systemId]: { ...(prev[systemId] || {}), online: true, repairing: false }
       }));
+      
+      if (systemId === 'motion_tracker') {
+        // Ativa o radar imediatamente para evitar flicker
+        setTrackerState('clean');
+        // Ignora sensorOnline: false por 5 segundos para compensar lag do servidor
+        window.lastTrackerRepair = Date.now();
+      }
     }
   };
 

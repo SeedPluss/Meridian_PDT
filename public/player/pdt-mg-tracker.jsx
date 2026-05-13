@@ -18,11 +18,20 @@ const MinigameMotionTracker = ({ onSuccess, onFailure }) => {
   const [bootLines,setBootLines]= React.useState([]);
   const [booting,  setBooting]  = React.useState(false);
   const [timer,    setTimer]    = React.useState(60);
-  const [attempts, setAttempts] = React.useState(0);
+  const finishedRef = React.useRef(false);
 
   // countdown
   React.useEffect(() => {
-    const iv = setInterval(() => setTimer(t => { if (t <= 1) { onFailure(); return 0; } return t - 1; }), 1000);
+    const iv = setInterval(() => setTimer(t => { 
+      if (t <= 1) { 
+        if (!finishedRef.current) {
+          finishedRef.current = true;
+          onFailure(); 
+        }
+        return 0; 
+      } 
+      return t - 1; 
+    }), 1000);
     return () => clearInterval(iv);
   }, []);
 
@@ -30,7 +39,7 @@ const MinigameMotionTracker = ({ onSuccess, onFailure }) => {
   const fmt = s => `00:${String(s).padStart(2,'0')}`;
 
   const toggleSensor = (key) => {
-    if (sensors[key]) return; // can't turn off
+    if (sensors[key] || finishedRef.current) return; // can't turn off
     // calibration animation
     setCalProg(p => ({ ...p, [key]: 0 }));
     let pct = 0;
@@ -45,6 +54,7 @@ const MinigameMotionTracker = ({ onSuccess, onFailure }) => {
   };
 
   const startBoot = () => {
+    if (finishedRef.current) return;
     setBooting(true);
     setPhase('boot');
     setBootLines([]);
@@ -54,7 +64,12 @@ const MinigameMotionTracker = ({ onSuccess, onFailure }) => {
       setTimeout(() => {
         setBootLines(prev => [...prev, line.text]);
         if (i === BOOT_LINES.length - 1) {
-          setTimeout(onSuccess, 800);
+          setTimeout(() => {
+            if (!finishedRef.current) {
+              finishedRef.current = true;
+              onSuccess();
+            }
+          }, 800);
         }
       }, acc);
     });

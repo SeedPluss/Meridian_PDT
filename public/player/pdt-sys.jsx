@@ -291,12 +291,24 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
   const [selectedSys, setSelectedSys] = React.useState(null);
   const [repairResult, setRepairResult] = React.useState(null);
   const startTimeRef = React.useRef(null);
+  const processingRef = React.useRef(false);
 
-  const handleRepair = (sys) => { setSelectedSys(sys); setSysState('briefing'); };
-  const handleStart = () => { startTimeRef.current = Date.now(); setSysState('minigame'); };
+  const handleRepair = (sys) => { 
+    setSelectedSys(sys); 
+    setSysState('briefing'); 
+    processingRef.current = false; 
+  };
+  const handleStart = () => { 
+    startTimeRef.current = Date.now(); 
+    setSysState('minigame'); 
+    processingRef.current = false;
+  };
   const handleCancel = () => setSysState('list');
 
   const handleSuccess = () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    
     const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const m = Math.floor(elapsed / 60), s = elapsed % 60;
     setRepairResult({ success: true, duration: `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`, attempts: '1' });
@@ -305,6 +317,9 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
   };
 
   const handleFailure = () => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+
     setRepairResult({ success: false });
     if (onRepairCommand) onRepairCommand(selectedSys.id, 'failure');
     setSysState('failure');

@@ -4,7 +4,7 @@
 // Defining base temperatures per sector
 const sectorBaseTemperature = {
   A1: 22.0, A2: 22.0, A_corridors: 21.0,
-  B1: 22.0, B_corridors: 20.0,
+  B1: 22.0, MAB: 20.0,
   MBC: 19.0, // Mezzanine
   C1: 28.0, C2: 7.0, C3: 15.0 // C2 is cargo hold, naturally colder
 };
@@ -21,7 +21,7 @@ const state = {
     A2: { name: 'Comms Room', deck: 'A' },
     A_corridors: { name: 'A-Deck Corridors', deck: 'A' },
     B1: { name: 'Medbay / Crew Quarters', deck: 'B' },
-    B_corridors: { name: 'B-Deck Corridors', deck: 'B' },
+    MAB: { name: 'B-Deck Corridors', deck: 'B' },
     MBC: { name: 'Mezzanine B-C', deck: 'M' },
     C1: { name: 'Engineering', deck: 'C' },
     C2: { name: 'Cargo Hold', deck: 'C' },
@@ -64,7 +64,7 @@ const state = {
     A2: { comms_lr: false, comms_local: false },
     B1: { life_support: false },
     MBC: { lighting_c: false },
-    B_corridors: { lighting_b: false, motion_tracker: false },
+    MAB: { lighting_b: false, motion_tracker: false },
     A_corridors: { lighting_a: false },
     C1: { reactor: false, power_grid: false },
     C3: { lifepods: false, door_control: false }

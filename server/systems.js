@@ -36,7 +36,7 @@ const SYSTEMS = {
   motion_tracker: {
     id: 'motion_tracker',
     name: 'Motion Tracker Network',
-    sector: 'B_corridors',
+    sector: 'MAB',
     skill: 'Percepção',
     difficulty: 'NORMAL',
     description: 'Boot sequence e calibração de sensores ultrassônicos.',
@@ -56,7 +56,7 @@ const SYSTEMS = {
   lighting_b: {
     id: 'lighting_b',
     name: 'Lighting - Deck B',
-    sector: 'B_corridors',
+    sector: 'MAB',
     skill: 'Tecnologia',
     difficulty: 'NORMAL',
     description: 'Restauração de cabos e reconfiguração de fusíveis de luz.',
