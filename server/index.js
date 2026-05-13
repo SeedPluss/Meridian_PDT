@@ -259,7 +259,7 @@ wss.on('connection', (ws) => {
       }
 
       case 'DOC_DOWNLOAD': {
-        const { documentId } = msg;
+        const documentId = (msg.documentId || '').trim().toLowerCase();
         const doc = documents.getDoc(documentId);
         
         if (!doc) {
@@ -396,32 +396,11 @@ wss.on('connection', (ws) => {
 
       case 'MASTER_UNLOCK_DOC': {
         if (info.role !== 'master') break;
-        const { documentId, targetPlayerId } = msg;
-        console.log(`[DEBUG] Master desbloqueando documento ${documentId} para: ${targetPlayerId}`);
+        const { documentId } = msg;
+        console.log(`[DEBUG] Master desbloqueando documento ${documentId} globalmente.`);
         
         documents.unlockDoc(documentId);
         broadcastToMasters({ type: 'FULL_STATE', state });
-        
-        if (!targetPlayerId || targetPlayerId === 'TODOS') {
-          clients.forEach((c, targetWs) => {
-            if (targetWs.readyState === OPEN) {
-              const doc = documents.getDoc(documentId);
-              sendTo(targetWs, { type: 'DOCUMENT_UNLOCKED', doc });
-              const list = documents.getIndex(c.id);
-              sendTo(targetWs, { type: 'DOC_LIST', docs: list });
-            }
-          });
-        } else {
-          const target = findTargetClient(targetPlayerId);
-          if (target) {
-            const doc = documents.getDoc(documentId);
-            sendTo(target.ws, { type: 'DOCUMENT_UNLOCKED', doc });
-            const list = documents.getIndex(target.info.id);
-            sendTo(target.ws, { type: 'DOC_LIST', docs: list });
-          } else {
-            console.log(`[DEBUG] Documento: Nenhuma conexão ativa para ${targetPlayerId}`);
-          }
-        }
         break;
       }
 
