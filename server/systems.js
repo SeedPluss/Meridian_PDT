@@ -121,11 +121,18 @@ function getSystemBriefing(playerId, systemId) {
 
   const player = state.players[playerId];
   
+  if (systemId === 'comms_local' && state.systems.comms_local.frequency === 0) {
+    const freq = (108 + Math.random() * 28).toFixed(1);
+    state.systems.comms_local.frequency = parseFloat(freq);
+    console.log(`[SYSTEMS] Frequência pré-gerada para Comms Local: ${freq} MHz`);
+  }
+
   let briefing = {
     ...base,
     playerSkillLevel: player && player.skills.includes(base.skill) ? player.level : 0,
     systemKey: systemId,
-    label: base.name
+    label: base.name,
+    frequency: systemId === 'comms_local' ? state.systems.comms_local.frequency : undefined
   };
 
   if (player && player.isAndroid) {
@@ -149,7 +156,9 @@ function unlockSystem(sector, systemId) {
 function resolveRepair(systemId, success) {
   if (state.systems[systemId]) {
     state.systems[systemId].online = success;
-    if(success) state.systems[systemId].integrity = 100;
+    if(success) {
+      state.systems[systemId].integrity = 100;
+    }
   }
 }
 

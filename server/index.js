@@ -171,6 +171,7 @@ wss.on('connection', (ws) => {
             stress: (existing && existing.stress) || 0,
             stress_max: char.stress_max,
             isAndroid: char.isAndroid,
+            downloadedDocs: (existing && existing.downloadedDocs) || [],
             online: true,
             lastLocationUpdate: Date.now()
           };
@@ -258,12 +259,34 @@ wss.on('connection', (ws) => {
 
       case 'DOC_DOWNLOAD': {
         const { documentId } = msg;
+        const doc = documents.getDoc(documentId);
+        
+        if (!doc) {
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'not_found' } });
+          break;
+        }
+
         const hasAccess = documents.getDocumentAccess(info.id, documentId);
-        if (hasAccess) {
-          const doc = documents.getDoc(documentId);
+        const isUnlocked = state.unlockedDocs.includes(documentId);
+        const isAndroid = state.players[info.id]?.isAndroid;
+
+        // Only allow download if it's unlocked by Master OR player is Android (bypass)
+        if (hasAccess && (isUnlocked || isAndroid)) {
+          // Add to player's personal list
+          const player = state.players[info.id];
+          if (player && !player.downloadedDocs.includes(documentId)) {
+            player.downloadedDocs.push(documentId);
+          }
+          
           sendTo(ws, { type: 'DOC_DOWNLOAD_OK', doc });
+          
+          // Refresh list for the player
+          const list = documents.getIndex(info.id);
+          sendTo(ws, { type: 'DOC_LIST', docs: list });
+        } else if (!isUnlocked && !isAndroid) {
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'not_found' } });
         } else {
-          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', msg: 'CREDENCIAL INSUFICIENTE' });
+          sendTo(ws, { type: 'DOC_DOWNLOAD_ERR', error: { type: 'no_access', level: doc.level } });
         }
         break;
       }
@@ -319,6 +342,14 @@ wss.on('connection', (ws) => {
               sendTo(targetWs, { type: 'SYSTEM_DETECTED', systemId: 'comms_lr' });
             });
           }
+        }
+
+        if (success) {
+          sendTo(ws, { 
+            type: 'REPAIR_COMPLETE', 
+            systemId, 
+            frequency: systemId === 'comms_local' ? state.systems.comms_local.frequency : undefined 
+          });
         }
 
         if (!success && state.players[info.id]) {
@@ -547,6 +578,22 @@ wss.on('connection', (ws) => {
       }
       
       // CHAT messages
+      case 'COMMS_AUTH_REQUEST': {
+        const { frequency } = msg;
+        const targetFreq = state.systems.comms_local.frequency;
+        
+        console.log(`[COMMS] Tentativa de sintonização: ${frequency} (Esperado: ${targetFreq})`);
+        
+        if (targetFreq > 0 && Math.abs(parseFloat(frequency) - targetFreq) < 0.05) {
+          state.systems.commsUnlockedGlobal = true;
+          broadcast({ type: 'COMMS_UNLOCKED_GLOBAL' });
+          console.log(`[COMMS] SISTEMA LIBERADO GLOBALMENTE por ${info.id}`);
+        } else {
+          sendTo(ws, { type: 'COMMS_AUTH_ERR', msg: 'FREQUÊNCIA INCORRETA' });
+        }
+        break;
+      }
+
       case 'CHAT_SEND': {
         const { channel, text } = msg;
         if (!text) break;

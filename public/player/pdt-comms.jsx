@@ -18,7 +18,6 @@ const FrequencyUnlock = ({ onUnlock }) => {
       setTimeout(() => setShake(false), 500);
       return;
     }
-    // Any valid numeric frequency unlocks (demo mode — in real app server validates)
     onUnlock(val.toFixed(1));
   };
 
@@ -109,7 +108,7 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
     if (onRead && unread > 0) onRead();
   }, [channel, history, unread, onRead]);
 
-  const CHANNELS = isAndroid ? ['GERAL', 'B1', 'W-Y'] : ['GERAL', 'B1'];
+  const CHANNELS = isAndroid ? ['GERAL', 'W-Y'] : ['GERAL'];
 
   const handleSend = () => {
     if (!inputText.trim()) return;
@@ -117,28 +116,9 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
     setInputText('');
   };
 
-  // ── Offline ──────────────────────────────────────
-  if (commsState === 'offline') return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px' }}>
-        <span style={vt(20,C.main)}>COMMS</span>
-        <span style={mono(11,C.dim,{border:`1px solid ${C.dim}`,padding:'2px 6px'})}>B1 ▾</span>
-      </div>
-      <HRule />
-      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'10px', padding:'24px' }}>
-        <div style={vt(24,C.mid)}>COMMS LOCAL: OFFLINE</div>
-        <AsciiRule />
-        <div style={mono(12,C.dim,{textAlign:'center',lineHeight:1.7})}>
-          Sem comunicação disponível<br />neste setor
-        </div>
-      </div>
-    </div>
-  );
-
   // ── W-Y channel (android only) ────────────────────
   if (channel === 'W-Y' && isAndroid) return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      {/* Channel selector */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px', flexShrink:0 }}>
         <span style={vt(20,C.main)}>COMMS</span>
         <div style={{ display:'flex', gap:'6px' }}>
@@ -158,12 +138,12 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
   );
 
   // ── Frequency locked ──────────────────────────────
-  if (channel !== 'GERAL' && !unlocked && channel !== 'W-Y') return (
+  if (!unlocked) return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px', flexShrink:0 }}>
         <span style={vt(20,C.main)}>COMMS</span>
         <div style={{ display:'flex', gap:'6px' }}>
-          {CHANNELS.filter(c=>c!=='W-Y').map(ch=>(
+          {CHANNELS.map(ch=>(
             <span key={ch} onClick={()=>setChannel(ch)} style={{
               ...mono(11, channel===ch?C.bright:C.dim),
               border:`1px solid ${channel===ch?C.dim:C.ghost}`,
@@ -177,22 +157,18 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
     </div>
   );
 
-  // ── Active channel ────────────────────────────────
+  // ── Active channel (GERAL) ────────────────────────
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 14px 6px', flexShrink:0 }}>
         <span style={vt(20,C.main)}>COMMS</span>
         <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
-          {unlocked && channel!=='GERAL' && channel!=='W-Y' && (
-            <span style={mono(9,C.dim,{opacity:0.6})}>SINTONIZADO</span>
-          )}
-          {CHANNELS.filter(c=>c!=='W-Y').map(ch=>(
-            <span key={ch} onClick={()=>setChannel(ch)} style={{
-              ...mono(11,channel===ch?C.bright:C.dim),
-              border:`1px solid ${channel===ch?C.dim:C.ghost}`,
-              padding:'3px 8px', cursor:'pointer',
-            }}>{ch} ▾</span>
-          ))}
+          <span style={mono(9,C.dim,{opacity:0.6})}>SINTONIZADO</span>
+          <span onClick={()=>setChannel('GERAL')} style={{
+            ...mono(11, channel==='GERAL'?C.bright:C.dim),
+            border:`1px solid ${channel==='GERAL'?C.dim:C.ghost}`,
+            padding:'3px 8px', cursor:'pointer',
+          }}>GERAL ▾</span>
           {isAndroid && (
             <span onClick={()=>setChannel('W-Y')} style={{
               ...mono(11,channel==='W-Y'?C.wyBright:C.wyMain),

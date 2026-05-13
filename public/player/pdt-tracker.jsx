@@ -68,6 +68,17 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
 
+      // ── Direction Markers (N, S, E, W) ──
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#006629';
+      ctx.font = '10px Share Tech Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('N', cx, cy - R + 12);
+      ctx.fillText('S', cx, cy + R - 6);
+      ctx.fillText('E', cx + R - 10, cy + 4);
+      ctx.fillText('W', cx - R + 10, cy + 4);
+      ctx.globalAlpha = 1;
+
       // ── Sweep trail (filled sector with alpha gradient) ──
       const TRAIL_ARC   = Math.PI * 0.75;
       const TRAIL_STEPS = 48;
@@ -99,7 +110,7 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.restore(); // end clip
 
       // ── Threat blips (from props) ────────────────────────
-      const currentBlips = Array.isArray(blipsRef.current) ? blipsRef.current : [];
+      const currentBlips = Array.isArray(blips) ? blips : [];
       if (currentBlips.length > 0) {
         currentBlips.forEach(blip => {
           // Angle mapping: Server 0 deg = Up (canvas -90 deg or -PI/2)
@@ -109,17 +120,23 @@ const RadarCanvas = ({ threatActive, blips }) => {
           
           const tx = cx + Math.cos(bAngle) * bDist;
           const ty = cy + Math.sin(bAngle) * bDist;
-          const pulse = 10 + (Math.sin(Date.now() / 280) * 0.5 + 0.5) * 9;
+          
+          // Radar pulse effect - only show when sweep is near or constant?
+          // Let's make it more cinematic: intensity based on how close the sweep is.
+          const angleDiff = Math.abs((angle - bAngle + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+          const intensity = Math.max(0.1, 1 - angleDiff / 1.2);
+          
+          const pulse = 10 + (Math.sin(Date.now() / 200) * 0.5 + 0.5) * 8;
           
           ctx.save();
           ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
           ctx.shadowColor = '#ff2a2a';
-          ctx.shadowBlur  = 14;
+          ctx.shadowBlur  = 14 * intensity;
           ctx.fillStyle   = '#ff2a2a';
-          ctx.globalAlpha = 0.9;
+          ctx.globalAlpha = 0.3 + intensity * 0.7;
           ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
           
-          ctx.globalAlpha = 0.45;
+          ctx.globalAlpha = 0.2 + intensity * 0.4;
           ctx.strokeStyle = '#ff2a2a';
           ctx.lineWidth = 1.5;
           ctx.shadowBlur = 0;
@@ -143,13 +160,14 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.lineWidth   = 2;
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
 
-      stateRef.current.angle = (angle + 0.015) % (Math.PI * 2);
+      // Increased sweep speed: 0.08 rad per frame (~1.0s per circle at 60fps)
+      stateRef.current.angle = (angle + 0.08) % (Math.PI * 2);
       rafRef.current = requestAnimationFrame(draw);
     };
 
     draw();
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [threatActive]);
+  }, [threatActive, blips]);
 
   return (
     <canvas ref={canvasRef} width={260} height={260}

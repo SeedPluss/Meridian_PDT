@@ -16,7 +16,7 @@ const CHIP_TRAY = [
   { id:5, spec:'5GHz / 300Mbps',   match:null },
 ];
 
-const CORRECT_FREQ = 847.3;
+const CORRECT_FREQ = parseFloat(window.repairFrequency) || 847.3;
 
 const MinigameCommsLocal = ({ onSuccess, onFailure }) => {
   const [phase,    setPhase]    = React.useState('chips'); // 'chips'|'antenna'|'freq'

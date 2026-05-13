@@ -98,6 +98,7 @@ const App = () => {
   const [commsHistory, setCommsHistory] = React.useState([]);
   const [commsUnread,  setCommsUnread]  = React.useState(0);
   const [commsUnlocked,setCommsUnlocked]= React.useState(false);
+  const [repairFrequency, setRepairFrequency] = React.useState(null);
   const [docsState,    setDocsState]    = React.useState('list');
   const [selectedDoc,  setSelectedDoc]  = React.useState(null);
   const [sysState,     setSysState]     = React.useState('list');
@@ -175,7 +176,10 @@ const App = () => {
         break;
 
       case 'FULL_STATE':
-        if (data.state.systems) setShipSystems(data.state.systems);
+        if (data.state.systems) {
+          setShipSystems(data.state.systems);
+          if (data.state.systems.commsUnlockedGlobal) setCommsUnlocked(true);
+        }
         if (data.state.docs) setDocList(data.state.docs);
         
         // Determina o estado do radar baseado no sistema de motion tracker
@@ -259,7 +263,10 @@ const App = () => {
         break;
 
       case 'SYSTEM_BRIEFING':
-        setActiveBriefingSystem(data.system || null);
+        setActiveBriefingSystem(data.briefing || null);
+        if (data.briefing && data.briefing.frequency) {
+          setRepairFrequency(data.briefing.frequency);
+        }
         break;
 
       case 'DOC_LIST':
@@ -337,8 +344,19 @@ const App = () => {
         break;
 
       case 'COMMS_FREQUENCY_OK':
+      case 'COMMS_UNLOCKED_GLOBAL':
         setCommsUnlocked(true);
         if (window.AudioEngine) window.AudioEngine.playUnlock();
+        break;
+
+      case 'REPAIR_COMPLETE':
+        if (data.frequency) {
+          setRepairFrequency(data.frequency);
+        }
+        break;
+
+      case 'COMMS_AUTH_ERR':
+        // Handle error if needed, but for now we'll just let the UI handle invalid input
         break;
 
       case 'SILENT_VIBRATE':
@@ -438,6 +456,12 @@ const App = () => {
     }
   };
 
+  const handleRepairRequest = (systemId) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'SYSTEM_BRIEFING_REQUEST', systemId }));
+    }
+  };
+
   const handleRepairCommand = (systemId, result) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'MINIGAME_RESULT', systemId, success: result === 'success' }));
@@ -471,10 +495,8 @@ const App = () => {
 
   const handleFrequencySubmit = (freq) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'COMMS_FREQUENCY', frequency: freq }));
+      ws.send(JSON.stringify({ type: 'COMMS_AUTH_REQUEST', frequency: freq }));
     }
-    // Demo: auto-unlock locally if no server validates
-    setCommsUnlocked(true);
   };
 
   const goToSys = () => { setActiveTab('sys'); setSysState('list'); };
@@ -530,9 +552,11 @@ const App = () => {
           character={character}
           isAndroid={isAndroid}
           shipSystems={shipSystems}
+          onRepairRequest={handleRepairRequest}
           onRepairCommand={handleRepairCommand}
           activeBriefingSystem={activeBriefingSystem}
           currentSector={currentSector}
+          repairFrequency={repairFrequency}
         />
       );
       default: return null;

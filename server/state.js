@@ -87,7 +87,8 @@ const state = {
     comms_local: { online: false, frequency: 0 },
     motion_tracker: { online: false },
     comms_lr: { online: false },
-    lifepods: { online: false }
+    lifepods: { online: false },
+    commsUnlockedGlobal: false
   }
 };
 

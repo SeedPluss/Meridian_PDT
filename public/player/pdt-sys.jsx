@@ -262,6 +262,18 @@ const SysResult = ({ success, system, duration, attempts, onBack }) => (
               </pre>
             </div>
           )}
+          {system?.id === 'comms_local' && window.repairFrequency && (
+            <div style={{
+              marginTop: '12px', border: `2px solid ${C.bright}`, padding: '12px',
+              background: '#001a00', textAlign: 'center'
+            }}>
+              <div style={mono(11, C.dim)}>FREQUÊNCIA DE SINTONIZAÇÃO:</div>
+              <div style={{ ...vt(32, C.bright), textShadow: glow(C.bright) }}>
+                {window.repairFrequency} MHz
+              </div>
+              <div style={mono(10, C.dim, { marginTop: '6px' })}>Informe a tripulação para liberar o rádio.</div>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '12px 0' }}>
@@ -292,7 +304,12 @@ const getDifficultyLevel = (character, requiredSkill) => {
   return 1; // Level 1: Treinado
 };
 
-const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand, currentSector }) => {
+const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand, currentSector, repairFrequency }) => {
+  // Store frequency in a way the success screen can see it
+  React.useEffect(() => {
+    if (repairFrequency) window.repairFrequency = repairFrequency;
+  }, [repairFrequency]);
+
   const [selectedSys, setSelectedSys] = React.useState(null);
   const [repairResult, setRepairResult] = React.useState(null);
   const startTimeRef = React.useRef(null);

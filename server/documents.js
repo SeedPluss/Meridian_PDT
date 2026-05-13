@@ -33,29 +33,25 @@ function getIndex(playerId) {
   const player = state.players[playerId];
   if (!player) return [];
 
-  const playerLevel = player.level || 1;
+  const playerDownloaded = player.downloadedDocs || [];
   const isAndroid = player.isAndroid || false;
 
   const out = [];
   for (const doc of _docs.values()) {
-    // If android, they have access to everything (level 3/unrestricted)
-    // The prompt says: Android — acesso nível 3 automático
-    const hasAccess = isAndroid || doc.level <= playerLevel || doc.visible;
-    const isUnlocked = hasAccess; // docs requested by ID. The index shows what they found/unlocked.
-
-    // Docs only show in index if they are unlocked for this player explicitly by master, 
-    // or if the player is Android and looking at it?
-    // "O ?? é intencional... Organizados por setor... Ordenados por hora"
-    // We will list all unlocked docs.
+    // If android, they see everything that is at least unlocked by master? 
+    // No, user said "até pro android tem que baixar".
+    // So if it's downloaded by THIS player, show it.
     
-    if (state.unlockedDocs.includes(doc.id) || isAndroid) {
+    if (playerDownloaded.includes(doc.id)) {
       out.push({
         id: doc.id,
         title: doc.title,
         sector: doc.sector || 'UNKNOWN',
         level: doc.level,
         visible: true,
-        locked: false
+        locked: false,
+        author: doc.author,
+        date: doc.date
       });
     }
   }

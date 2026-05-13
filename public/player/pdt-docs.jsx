@@ -48,12 +48,23 @@ const DocDownload = ({ docId, onComplete, onError }) => {
       <div style={mono(10, C.dim)}>{msg}</div>
       
       {done && (
-        <div style={{ marginTop:'20px', animation:'pulse 1.5s infinite' }}>
+        <div style={{ 
+          marginTop:'20px', 
+          animation:'pdt-pulse 1.5s infinite' 
+        }}>
           <PDTButton variant="bright" onClick={() => onComplete(docId)}>
             [ ABRIR DOCUMENTO ]
           </PDTButton>
         </div>
       )}
+
+      <style>{`
+        @keyframes pdt-pulse {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.98); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
 
       <div style={mono(9, C.dim, { opacity:0.5, marginTop: done ? '10px' : '40px' })}>
         SEEGSON FILE SYSTEM v4.2
@@ -151,10 +162,10 @@ const DocReader = ({ doc, allDocs, onBack }) => {
       </div>
       <div style={{ flex:1, overflowY:'auto', padding:'16px 14px 20px', scrollbarWidth:'none' }}>
         <div style={vt(22, C.bright, { textShadow:glow(C.bright), marginBottom:'2px' })}>{doc.title}</div>
-        <div style={mono(11, C.dim, { marginBottom:'12px' })}>{doc.author} // {doc.date}</div>
+        <div style={mono(11, C.dim, { marginBottom:'12px' })}>{doc.author || 'SISTEMA'} // {doc.date || '---'}</div>
         <AsciiRule />
         <pre style={{ ...vt(20, C.main), whiteSpace:'pre-wrap', wordBreak:'break-word',
-          lineHeight:1.65, margin:'12px 0 0' }}>{doc.content}</pre>
+          lineHeight:1.65, margin:'12px 0 0' }}>{doc.content?.body || doc.content || 'NENHUM CONTEÚDO DISPONÍVEL.'}</pre>
       </div>
     </div>
   );
