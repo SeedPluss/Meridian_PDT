@@ -15,6 +15,37 @@ documents.loadDocuments();
 
 const PORT = process.env.PORT || 3000;
 const MASTER_KEY = process.env.MASTER_KEY || 'alienfofinho123';
+
+const exclusiveTabByCharacter = {
+  'eng_chefe':         'structural',
+  'tec_sistemas':      'infrastructure',
+  'medico':            'biometric',
+  'oficial_seguranca': 'security',
+  'tec_manutencao':    'analysis',
+  'op_comms':          'comms_spectrum',
+  'esp_carga':         'cargo',
+};
+
+const upgradeMap = {
+  'life_support':   [{ tab: 'biometric', level: 2 }, { tab: 'analysis', level: 2 }],
+  'lighting':       [{ tab: 'infrastructure', level: 2 }],
+  'door_control':   [{ tab: 'infrastructure', level: 2 }, { tab: 'security', level: 2 }],
+  'reactor':        [{ tab: 'structural', level: 2 }],
+  'power_grid':     [{ tab: 'structural', level: 2 }, { tab: 'infrastructure', level: 3 }],
+  'comms_local':    [{ tab: 'comms_spectrum', level: 2 }],
+  'comms_long':     [{ tab: 'comms_spectrum', level: 3 }],
+  'comms_lr':       [{ tab: 'comms_spectrum', level: 3 }],
+  'motion_tracker': [],
+  'lifepods':       [],
+};
+
+const sectorSyncMap = {
+  'C2': [{ tab: 'cargo', level: 2 }],
+  'A1': [{ tab: 'security', level: 3 }],
+  'B1': [{ tab: 'biometric', level: 3 }, { tab: 'analysis', level: 3 }],
+  'C1': [{ tab: 'structural', level: 3 }],
+};
+
 console.log('[DEBUG] Sistema iniciado. Chave Master configurada:', MASTER_KEY);
 
 const app = express();
@@ -173,7 +204,9 @@ wss.on('connection', (ws) => {
             isAndroid: char.isAndroid,
             downloadedDocs: (existing && existing.downloadedDocs) || [],
             online: true,
-            lastLocationUpdate: Date.now()
+            lastLocationUpdate: Date.now(),
+            exclusiveTabType: exclusiveTabByCharacter[char.id] || null,
+            exclusiveTabLevel: (existing && existing.exclusiveTabLevel) || 1,
           };
           
           sendTo(ws, {
@@ -216,7 +249,9 @@ wss.on('connection', (ws) => {
               isAndroid: char.isAndroid,
               downloadedDocs: [],
               online: true,
-              lastLocationUpdate: Date.now()
+              lastLocationUpdate: Date.now(),
+              exclusiveTabType: exclusiveTabByCharacter[characterId] || null,
+              exclusiveTabLevel: 1,
             };
             pData = state.players[characterId];
           }
@@ -249,10 +284,32 @@ wss.on('connection', (ws) => {
             state.players[info.id].lastLocationUpdate = Date.now();
             sendTo(ws, { type: 'SECTOR_MOVE_OK', sector: toSector });
             broadcastToMasters({ type: 'FULL_STATE', state });
-            
+
             // Check if any system here is unlocked but they haven't seen it
             // Send vibration
             sendTo(ws, { type: 'SYSTEMS_AVAILABLE', systems: state.unlockedSystems[toSector] });
+
+            // Exclusive tab upgrades triggered by sector access
+            const sectorUpgrades = sectorSyncMap[toSector];
+            if (sectorUpgrades && sectorUpgrades.length > 0) {
+              sectorUpgrades.forEach(entry => {
+                clients.forEach((cInfo, targetWs) => {
+                  if (cInfo.role !== 'player' || targetWs.readyState !== OPEN) return;
+                  const charId = cInfo.id;
+                  const pState = state.players[charId];
+                  if (!pState || pState.exclusiveTabType !== entry.tab) return;
+                  if (entry.level > (pState.exclusiveTabLevel || 1)) {
+                    pState.exclusiveTabLevel = entry.level;
+                    sendTo(targetWs, {
+                      type: 'EXCLUSIVE_TAB_UPGRADE',
+                      level: entry.level,
+                      tabType: entry.tab,
+                      message: `Setor sincronizado — nível ${entry.level} desbloqueado`
+                    });
+                  }
+                });
+              });
+            }
           }
         }
         break;
@@ -366,11 +423,33 @@ wss.on('connection', (ws) => {
         }
 
         if (success) {
-          sendTo(ws, { 
-            type: 'REPAIR_COMPLETE', 
-            systemId, 
-            frequency: systemId === 'comms_local' ? state.systems.comms_local.frequency : undefined 
+          sendTo(ws, {
+            type: 'REPAIR_COMPLETE',
+            systemId,
+            frequency: systemId === 'comms_local' ? state.systems.comms_local.frequency : undefined
           });
+
+          // Exclusive tab upgrades triggered by repair
+          const repairUpgrades = upgradeMap[systemId];
+          if (repairUpgrades && repairUpgrades.length > 0) {
+            repairUpgrades.forEach(entry => {
+              clients.forEach((cInfo, targetWs) => {
+                if (cInfo.role !== 'player' || targetWs.readyState !== OPEN) return;
+                const charId = cInfo.id;
+                const pState = state.players[charId];
+                if (!pState || pState.exclusiveTabType !== entry.tab) return;
+                if (entry.level > (pState.exclusiveTabLevel || 1)) {
+                  pState.exclusiveTabLevel = entry.level;
+                  sendTo(targetWs, {
+                    type: 'EXCLUSIVE_TAB_UPGRADE',
+                    level: entry.level,
+                    tabType: entry.tab,
+                    message: `Sistema reparado — nível ${entry.level} desbloqueado`
+                  });
+                }
+              });
+            });
+          }
         }
 
         if (!success && state.players[info.id]) {
@@ -747,6 +826,16 @@ wss.on('connection', (ws) => {
           }
         });
         if (!androidFound) console.log('[WY] Android não encontrado ou offline.');
+        break;
+      }
+
+      case 'EXCLUSIVE_TAB_DATA_REQUEST': {
+        const pState = state.players[info.id];
+        sendTo(ws, {
+          type: 'EXCLUSIVE_TAB_DATA',
+          exclusiveTabType: pState?.exclusiveTabType || null,
+          exclusiveTabLevel: pState?.exclusiveTabLevel || 1,
+        });
         break;
       }
 
