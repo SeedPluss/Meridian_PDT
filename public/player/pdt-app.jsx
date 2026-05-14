@@ -43,15 +43,36 @@ const TABS = [
   { id:'sys',     label:'SYS',     icon:'⚙' },
 ];
 
-const BottomNav = ({ activeTab, onTabChange, blockedTabs = {}, badges = {} }) => (
+const exclusiveTabIcons = {
+  biometric:      '♥',
+  infrastructure: '⎔',
+  structural:     '⌬',
+  comms_spectrum: '◈',
+  security:       '⊡',
+  cargo:          '⊞',
+  analysis:       '⌬',
+};
+
+const exclusiveTabLabels = {
+  biometric:      'BIO',
+  infrastructure: 'INFRA',
+  structural:     'STRUCT',
+  comms_spectrum: 'SPEC',
+  security:       'SEC',
+  cargo:          'CARGO',
+  analysis:       'ANAL',
+};
+
+const BottomNav = ({ activeTab, onTabChange, blockedTabs = {}, badges = {}, tabs = TABS, tabUpgradeMessage = null }) => (
   <div style={{ flexShrink:0, borderTop:`1px solid ${C.dim}`, display:'flex', minHeight:'58px', background:C.black }}>
-    {TABS.map(tab => {
+    {tabs.map(tab => {
       const active = activeTab === tab.id;
       const locked = !!blockedTabs[tab.id];
+      const hasUpgrade = tab.id === 'exclusive' && tabUpgradeMessage != null;
       return (
         <button key={tab.id} onClick={() => onTabChange(tab.id)} style={{
           flex:1, background:'transparent', border:'none',
-          borderTop:`2px solid ${active?C.bright:'transparent'}`,
+          borderTop:`2px solid ${hasUpgrade ? C.bright : active ? C.bright : 'transparent'}`,
           cursor:'pointer', display:'flex', flexDirection:'column',
           alignItems:'center', justifyContent:'center',
           gap:'3px', padding:'6px 0', position:'relative', minHeight:'58px',
@@ -119,6 +140,11 @@ const App = () => {
   const [showCountdown,  setShowCountdown]  = React.useState(false);
   const [countdownTime,  setCountdownTime]  = React.useState(0);
 
+  // Exclusive tab
+  const [exclusiveTabLevel, setExclusiveTabLevel] = React.useState(1);
+  const [exclusiveTabData,  setExclusiveTabData]  = React.useState(null);
+  const [tabUpgradeMessage, setTabUpgradeMessage] = React.useState(null); // { level, tabType, message }
+
   // Systems and Documents State
   const [shipSystems,   setShipSystems]   = React.useState({
     reactor: { online: false },
@@ -154,6 +180,7 @@ const App = () => {
     switch (data.type) {
       case 'LOGIN_OK':
         setAuthCharacter(data.character);
+        setExclusiveTabLevel(data.character?.exclusiveTabLevel || 1);
         break;
 
       case 'SESSION_RESUMED':
@@ -387,6 +414,20 @@ const App = () => {
         if (navigator.vibrate) navigator.vibrate([100]);
         break;
 
+      case 'EXCLUSIVE_TAB_UPGRADE': {
+        const newLevel = data.level;
+        setExclusiveTabLevel(newLevel);
+        setTabUpgradeMessage({ level: newLevel, tabType: data.tabType, message: data.message });
+        if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
+        setTimeout(() => setActiveTab('exclusive'), 1000);
+        setTimeout(() => setTabUpgradeMessage(null), 5000);
+        break;
+      }
+
+      case 'EXCLUSIVE_TAB_DATA':
+        setExclusiveTabData(data);
+        break;
+
       default: break;
     }
   };
@@ -398,6 +439,7 @@ const App = () => {
     const connect = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       socket = new WebSocket(`${protocol}//${window.location.host}`);
+      window.__pdtSend = (obj) => { if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(obj)); };
 
       socket.onopen = () => {
         console.log('[PDT] Connected');
@@ -453,6 +495,9 @@ const App = () => {
     setActiveTab('tracker');
     localStorage.setItem('meridian_char', JSON.stringify(char));
     setAuthCharacter(null);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'EXCLUSIVE_TAB_DATA_REQUEST' }));
+    }
   };
 
   const handleAuthRequest = (user, pass) => {
@@ -538,6 +583,12 @@ const App = () => {
 
   const goToSys = () => { setActiveTab('sys'); setSysState('list'); };
 
+  // ── Exclusive tab ─────────────────────────────────────────────────────────
+  const exclusiveTab = character?.exclusiveTabType
+    ? { id: 'exclusive', label: exclusiveTabLabels[character.exclusiveTabType] || 'EX', icon: exclusiveTabIcons[character.exclusiveTabType] || '◆' }
+    : null;
+  const activeTabs = exclusiveTab ? [...TABS, exclusiveTab] : TABS;
+
   // ── Content router ────────────────────────────────────────────────────────
   const renderContent = () => {
     if (!loggedIn) return (
@@ -600,6 +651,15 @@ const App = () => {
           repairFrequency={repairFrequency}
         />
       );
+      case 'exclusive':
+        return window.ExclusiveTabScreen
+          ? <window.ExclusiveTabScreen
+              tabType={character?.exclusiveTabType}
+              level={exclusiveTabLevel}
+              data={exclusiveTabData}
+              character={character}
+            />
+          : <div style={{ padding: 20, color: '#666' }}>Carregando...</div>;
       default: return null;
     }
   };
@@ -642,6 +702,8 @@ const App = () => {
           onTabChange={handleTabChange}
           blockedTabs={blockedTabs}
           badges={{ comms: commsUnread }}
+          tabs={activeTabs}
+          tabUpgradeMessage={tabUpgradeMessage}
         />
       )}
 
@@ -649,6 +711,15 @@ const App = () => {
       {showAlert      && <AlertOverlay      data={alertData}          onDismiss={() => setShowAlert(false)} />}
       {showMother     && <MotherOverlay     variant={motherVariant}   text={motherText} onDismiss={() => { setShowMother(false); setMotherText(null); if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'OVERLAY_DISMISSED', overlayType: 'mother' })); }} />}
       {showSecretNote && <SecretNoteOverlay text={secretNoteText}     onDismiss={() => { setShowSecretNote(false); setSecretNoteText(null); if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'OVERLAY_DISMISSED', overlayType: 'secret_note' })); }} />}
+      {tabUpgradeMessage && window.TabUpgradeOverlay && (
+        <window.TabUpgradeOverlay
+          level={tabUpgradeMessage.level}
+          tabType={tabUpgradeMessage.tabType}
+          message={tabUpgradeMessage.message}
+          icon={exclusiveTabIcons[tabUpgradeMessage.tabType] || '◆'}
+          onDone={() => setTabUpgradeMessage(null)}
+        />
+      )}
     </div>
   );
 };
