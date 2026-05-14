@@ -235,4 +235,43 @@ const CountdownBanner = ({ time }) => {
   );
 };
 
-Object.assign(window, { AlertOverlay, MotherOverlay, SecretNoteOverlay, LockedScreen, CountdownBanner });
+// ── Tab Upgrade Overlay ───────────────────────────────────────────────────────
+
+const TabUpgradeOverlay = ({ level, tabType, message, icon, onDone }) => {
+  React.useEffect(() => {
+    const t = setTimeout(onDone, 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const levelLabel = level === 2 ? 'NÍVEL 2 — SINCRONIZADO' : 'NÍVEL 3 — MALHA RESTAURADA';
+  const levelColor = level === 2 ? C.bright : C.amber;
+
+  return (
+    <div onClick={onDone} style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(0,10,4,0.92)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: '16px', padding: '32px',
+    }}>
+      {/* Icon */}
+      <div style={{ fontSize: '48px', color: levelColor, textShadow: glow(levelColor) }}>
+        {icon}
+      </div>
+      {/* Level label */}
+      <div style={{ ...vt(28, levelColor), textShadow: glow(levelColor), textAlign: 'center' }}>
+        {levelLabel}
+      </div>
+      {/* Message from server */}
+      <div style={{ ...mono(12, C.main), textAlign: 'center', lineHeight: 1.7, maxWidth: '280px' }}>
+        {message}
+      </div>
+      {/* Dismiss hint */}
+      <div style={{ ...mono(10, C.dim), marginTop: '16px' }}>
+        [ TOQUE PARA FECHAR ]
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, { AlertOverlay, MotherOverlay, SecretNoteOverlay, LockedScreen, CountdownBanner, TabUpgradeOverlay });
