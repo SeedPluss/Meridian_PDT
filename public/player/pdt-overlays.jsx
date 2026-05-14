@@ -68,8 +68,9 @@ const MOTHER_TEXTS = {
   },
 };
 
-const MotherOverlay = ({ onDismiss, variant = 'seegson' }) => {
+const MotherOverlay = ({ onDismiss, variant = 'seegson', text }) => {
   const cfg = MOTHER_TEXTS[variant] || MOTHER_TEXTS.seegson;
+  const bodyText = (text && text.trim()) ? text : cfg.body;
   const [displayed, setDisplayed] = React.useState('');
   const [typingDone, setTypingDone] = React.useState(false);
 
@@ -79,14 +80,14 @@ const MotherOverlay = ({ onDismiss, variant = 'seegson' }) => {
     let i = 0;
     const iv = setInterval(() => {
       i++;
-      setDisplayed(cfg.body.slice(0, i));
-      if (i >= cfg.body.length) {
+      setDisplayed(bodyText.slice(0, i));
+      if (i >= bodyText.length) {
         clearInterval(iv);
         setTypingDone(true);
       }
     }, 32);
     return () => clearInterval(iv);
-  }, [variant, cfg.body]);
+  }, [variant, bodyText]);
 
   return (
     <div style={{
@@ -114,7 +115,7 @@ const MotherOverlay = ({ onDismiss, variant = 'seegson' }) => {
 
         {/* Typed body */}
         <div style={{ minHeight: '60px' }}>
-          <span style={vt(19, cfg.color, { lineHeight: 1.6 })}>{displayed}</span>
+          <span style={vt(19, cfg.color, { lineHeight: 1.6, whiteSpace: 'pre-wrap' })}>{displayed}</span>
           {!typingDone && <Cursor color={cfg.color} />}
         </div>
 
@@ -145,7 +146,9 @@ const MotherOverlay = ({ onDismiss, variant = 'seegson' }) => {
 
 // ── Secret Note Overlay ───────────────────────────────────────────────────────
 
-const SecretNoteOverlay = ({ onDismiss }) => (
+const SecretNoteOverlay = ({ onDismiss, text }) => {
+  const noteText = (text && text.trim()) ? text : '[mensagem privada]';
+  return (
   <div style={{
     position: 'absolute', inset: 0,
     background: 'rgba(0,10,4,0.97)',
@@ -170,8 +173,8 @@ const SecretNoteOverlay = ({ onDismiss }) => (
 
       {/* Content */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={vt(19, C.main, { lineHeight: 1.65 })}>
-          O contêiner W-Y que você encontrou está com o display diferente. Alguém o acessou recentemente.
+        <div style={vt(19, C.main, { lineHeight: 1.65, whiteSpace: 'pre-wrap' })}>
+          {noteText}
         </div>
       </div>
 
@@ -185,7 +188,8 @@ const SecretNoteOverlay = ({ onDismiss }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ── Locked Tab ────────────────────────────────────────────────────────────────
 

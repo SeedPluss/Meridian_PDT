@@ -1,13 +1,13 @@
 // pdt-login.jsx — Login: credentials → verification → character profile
 
 const LOGIN_CHARS = [
-  { u:'kowalski', p:'meridian', nome:'Kowalski, M.', cargo:'Engenheiro Chefe',        nivel:2, skills:['Tecnologia','Percepção'],  stress:40, pdtId:1, isAndroid:false, registro:'Veterano de três missões de mineração. Prefere o silêncio das naves ao barulho das pessoas.' },
-  { u:'chen',     p:'meridian', nome:'Chen, L.',     cargo:'Oficial Médico',           nivel:2, skills:['Medicina','Ciência'],      stress:40, pdtId:3, isAndroid:false, registro:'Aceitou o contrato para pagar as dívidas de tratamento do irmão mais novo. Não conta para ninguém.' },
-  { u:'rodriguez',p:'meridian', nome:'Rodriguez, C.',cargo:'Técnico de Sistemas',      nivel:2, skills:['Tecnologia','Maquinaria'], stress:40, pdtId:2, isAndroid:false, registro:'Especialista em sistemas Seegson. Conhece cada falha desse equipamento de memória.' },
-  { u:'lima',     p:'meridian', nome:'Lima, A.',     cargo:'Piloto',                   nivel:2, skills:['Pilotagem','Percepção'],   stress:40, pdtId:4, isAndroid:false, registro:'Décima missão de campo. Parou de contar os sobreviventes depois da quinta.' },
-  { u:'santos',   p:'meridian', nome:'Santos, R.',   cargo:'Especialista em Segurança',nivel:2, skills:['Combate','Percepção'],     stress:40, pdtId:5, isAndroid:false, registro:'Ex-militar. Trabalha para a W-Y por opção, não por necessidade.' },
-  { u:'osei',     p:'meridian', nome:'Osei, K.',     cargo:'Geólogo',                  nivel:1, skills:['Ciência','Percepção'],    stress:30, pdtId:6, isAndroid:false, registro:'Primeira missão. Os créditos eram bons. Não sabia o que custariam.' },
-  { u:'reeves',   p:'meridian', nome:'Reeves',       cargo:'Técnico de Campo',         nivel:2, skills:['Tecnologia','Maquinaria'],stress:40, pdtId:7, isAndroid:true,  registro:'[A SER PREENCHIDO PELO MESTRE]' },
+  { pdtId:1, nome:'ENG. CHEFE',      u:'mkb', p:'01' },
+  { pdtId:2, nome:'TEC. SISTEMAS',   u:'tec', p:'02' },
+  { pdtId:3, nome:'MÉDICO',          u:'med', p:'03' },
+  { pdtId:4, nome:'OF. SEGURANÇA',   u:'seg', p:'04' },
+  { pdtId:5, nome:'TEC. MANUTENÇÃO', u:'man', p:'05' },
+  { pdtId:6, nome:'OP. COMMS',       u:'com', p:'06' },
+  { pdtId:7, nome:'ESP. CARGA',      u:'car', p:'07' },
 ];
 
 const LOAD_MSGS = [
@@ -53,7 +53,7 @@ const LoginScreen = ({ onAuthRequest, onLoginConfirm, authError, authCharacter }
   }, [phase]);
 
   React.useEffect(() => {
-    if (authError && phase === 'waiting') {
+    if (authError && (phase === 'waiting' || phase === 'loading')) {
       setErrMsg(authError);
       setPhase('creds');
     }

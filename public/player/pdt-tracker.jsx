@@ -16,13 +16,24 @@ const getDirectionLabel = (angle) => {
 };
 
 const RadarCanvas = ({ threatActive, blips }) => {
-  const canvasRef = React.useRef(null);
-  const rafRef    = React.useRef(null);
-  const stateRef  = React.useRef({ angle: 0 });
-  const blipsRef  = React.useRef(blips);
+  const canvasRef          = React.useRef(null);
+  const rafRef             = React.useRef(null);
+  const stateRef           = React.useRef({ angle: 0 });
+  const blipsRef           = React.useRef(blips);
+  const blipTimestampsRef  = React.useRef({});
 
   React.useEffect(() => {
     blipsRef.current = blips;
+    // Update last-seen timestamp for every blip currently present
+    if (Array.isArray(blips)) {
+      const now = Date.now();
+      blips.forEach(blip => {
+        const key = blip.id != null
+          ? String(blip.id)
+          : `${blip.angle}-${blip.type}`;
+        blipTimestampsRef.current[key] = now;
+      });
+    }
   }, [blips]);
 
   React.useEffect(() => {
@@ -109,8 +120,17 @@ const RadarCanvas = ({ threatActive, blips }) => {
 
       ctx.restore(); // end clip
 
-      // ── Threat blips (from props) ────────────────────────
-      const currentBlips = Array.isArray(blips) ? blips : [];
+      // ── Threat blips (from props, filtered to last 1500ms) ──
+      const BLIP_TTL = 1500;
+      const now = Date.now();
+      const allBlips = Array.isArray(blipsRef.current) ? blipsRef.current : [];
+      const currentBlips = allBlips.filter(blip => {
+        const key = blip.id != null
+          ? String(blip.id)
+          : `${blip.angle}-${blip.type}`;
+        const ts = blipTimestampsRef.current[key];
+        return ts !== undefined && (now - ts) <= BLIP_TTL;
+      });
       if (currentBlips.length > 0) {
         currentBlips.forEach(blip => {
           // Angle mapping: Server 0 deg = Up (canvas -90 deg or -PI/2)
@@ -128,16 +148,20 @@ const RadarCanvas = ({ threatActive, blips }) => {
           
           const pulse = 10 + (Math.sin(Date.now() / 200) * 0.5 + 0.5) * 8;
           
+          const blipColor = blip.type === 'scavenger' ? '#ffaa00'
+                          : blip.type === 'player'    ? '#44ff88'
+                          : '#ff2a2a'; // organism or unknown → red
+
           ctx.save();
           ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
-          ctx.shadowColor = '#ff2a2a';
+          ctx.shadowColor = blipColor;
           ctx.shadowBlur  = 14 * intensity;
-          ctx.fillStyle   = '#ff2a2a';
+          ctx.fillStyle   = blipColor;
           ctx.globalAlpha = 0.3 + intensity * 0.7;
           ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
-          
+
           ctx.globalAlpha = 0.2 + intensity * 0.4;
-          ctx.strokeStyle = '#ff2a2a';
+          ctx.strokeStyle = blipColor;
           ctx.lineWidth = 1.5;
           ctx.shadowBlur = 0;
           ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
@@ -160,14 +184,14 @@ const RadarCanvas = ({ threatActive, blips }) => {
       ctx.lineWidth   = 2;
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
 
-      // Increased sweep speed: 0.08 rad per frame (~1.0s per circle at 60fps)
-      stateRef.current.angle = (angle + 0.08) % (Math.PI * 2);
+      // ~2.0s per circle at 60fps: 2π / 0.053 / 60 ≈ 2.0s
+      stateRef.current.angle = (angle + 0.053) % (Math.PI * 2);
       rafRef.current = requestAnimationFrame(draw);
     };
 
     draw();
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [threatActive, blips]);
+  }, [threatActive]);
 
   return (
     <canvas ref={canvasRef} width={260} height={260}

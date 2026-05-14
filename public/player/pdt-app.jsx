@@ -98,6 +98,7 @@ const App = () => {
   const [commsHistory, setCommsHistory] = React.useState([]);
   const [commsUnread,  setCommsUnread]  = React.useState(0);
   const [commsUnlocked,setCommsUnlocked]= React.useState(false);
+  const [wyHistory,    setWyHistory]    = React.useState([]);
   const [repairFrequency, setRepairFrequency] = React.useState(null);
   const [docsState,    setDocsState]    = React.useState('list');
   const [selectedDoc,  setSelectedDoc]  = React.useState(null);
@@ -110,6 +111,7 @@ const App = () => {
   const [alertData,      setAlertData]      = React.useState(null);
   const [showMother,     setShowMother]     = React.useState(false);
   const [motherVariant,  setMotherVariant]  = React.useState('seegson');
+  const [motherText,     setMotherText]     = React.useState(null);
   const [showSecretNote, setShowSecretNote] = React.useState(false);
   const [secretNoteText, setSecretNoteText] = React.useState(null);
 
@@ -133,6 +135,8 @@ const App = () => {
   });
   const [docList,       setDocList]       = React.useState([]);
   const [downloadError, setDownloadError] = React.useState(null);
+  const [dlActive,      setDlActive]      = React.useState(false);
+  const [newDocAvailable, setNewDocAvailable] = React.useState(null); // docId string or null
 
   // ── Global Effects ────────────────────────────────────────────────────────
   React.useEffect(() => {
@@ -149,10 +153,7 @@ const App = () => {
   const handleSocketMessage = (data) => {
     switch (data.type) {
       case 'LOGIN_OK':
-        setCharacter(data.character);
-        setLoggedIn(true);
-        setActiveTab('tracker');
-        localStorage.setItem('meridian_char', JSON.stringify(data.character));
+        setAuthCharacter(data.character);
         break;
 
       case 'SESSION_RESUMED':
@@ -273,6 +274,14 @@ const App = () => {
         setDocList(data.docs || []);
         break;
 
+      case 'DOCUMENT_AVAILABLE':
+        // Master made a doc available for download — show brief notification, do NOT add to list
+        setNewDocAvailable(data.docId);
+        setTimeout(() => setNewDocAvailable(null), 5000);
+        if (window.AudioEngine) window.AudioEngine.playUnlock();
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+
       case 'DOCUMENT_UNLOCKED':
         setDocList(prev => [...prev, data.doc]);
         if (activeTab !== 'docs') setCommsHistory(prev => [...prev, {
@@ -304,6 +313,7 @@ const App = () => {
       case 'MOTHER_MSG':
       case 'MOTHER_MESSAGE':
         setMotherVariant(data.voice === 'W-Y' ? 'wy' : 'seegson');
+        setMotherText(data.text || null);
         setShowMother(true);
         if (window.AudioEngine) window.AudioEngine.playMother(data.voice === 'W-Y' ? 'wy' : 'seegson');
         if (navigator.vibrate) navigator.vibrate([100]);
@@ -343,6 +353,15 @@ const App = () => {
         if (window.AudioEngine) window.AudioEngine.playKeystroke();
         break;
 
+      case 'WY_CHANNEL_MSG': {
+        const wyTime = data.time || new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+        setWyHistory(prev => [...prev, { time: wyTime, sender: 'W-Y OPS', text: data.text, type: 'wy' }]);
+        if (isAndroid && activeTab !== 'comms') setCommsUnread(prev => prev + 1);
+        if (window.AudioEngine) window.AudioEngine.playKeystroke();
+        if (navigator.vibrate) navigator.vibrate([100]);
+        break;
+      }
+
       case 'COMMS_FREQUENCY_OK':
       case 'COMMS_UNLOCKED_GLOBAL':
         setCommsUnlocked(true);
@@ -357,6 +376,10 @@ const App = () => {
 
       case 'COMMS_AUTH_ERR':
         // Handle error if needed, but for now we'll just let the UI handle invalid input
+        break;
+
+      case 'STRESS_UPDATE':
+        setCharacter(prev => prev ? { ...prev, stress: data.stress } : prev);
         break;
 
       case 'SILENT_VIBRATE':
@@ -420,6 +443,7 @@ const App = () => {
   // ── Mode A: full-screen, hide nav/header ──────────────────────────────────
   const modeA =
     (activeTab === 'docs' && docsState === 'reading') ||
+    (activeTab === 'docs' && dlActive) ||
     (activeTab === 'sys'  && ['briefing','minigame','success','failure'].includes(sysState));
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -427,6 +451,8 @@ const App = () => {
     setCharacter(char);
     setLoggedIn(true);
     setActiveTab('tracker');
+    localStorage.setItem('meridian_char', JSON.stringify(char));
+    setAuthCharacter(null);
   };
 
   const handleAuthRequest = (user, pass) => {
@@ -493,6 +519,17 @@ const App = () => {
     }]);
   };
 
+  const handleSendWY = (text) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'CHAT_SEND', text, channel: 'W-Y' }));
+    }
+    // Optimistic local echo in the WY history
+    setWyHistory(prev => [...prev, {
+      time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+      sender: 'VOCÊ', text, type: 'self'
+    }]);
+  };
+
   const handleFrequencySubmit = (freq) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'COMMS_AUTH_REQUEST', frequency: freq }));
@@ -526,9 +563,12 @@ const App = () => {
           commsState={commsState}
           isAndroid={isAndroid}
           history={commsHistory}
+          wyHistory={wyHistory}
           unread={commsUnread}
           unlocked={commsUnlocked}
+          wsOnline={wsStatus === 'open'}
           onSendMessage={handleSendComms}
+          onSendWY={handleSendWY}
           onFrequencySubmit={handleFrequencySubmit}
           onRead={() => setCommsUnread(0)}
         />
@@ -543,6 +583,7 @@ const App = () => {
           unlockedDocs={docList}
           onDownloadRequest={handleDocDownload}
           downloadError={downloadError}
+          onDlActive={setDlActive}
         />
       );
       case 'sys': return (
@@ -576,6 +617,19 @@ const App = () => {
       {/* Countdown banner — below header, above content */}
       {loggedIn && showCountdown && <CountdownBanner time={countdownTime} />}
 
+      {/* Doc available toast — brief notification when master unlocks a doc */}
+      {loggedIn && newDocAvailable && (
+        <div style={{
+          position:'absolute', top:'48px', left:'50%', transform:'translateX(-50%)',
+          zIndex:200, background:'#1a1a00', border:'1px solid #aaaa00',
+          padding:'6px 14px', fontFamily:"'VT323', monospace", fontSize:'16px',
+          color:'#aaaa00', letterSpacing:'0.05em', whiteSpace:'nowrap',
+          pointerEvents:'none',
+        }}>
+          ▼ DOC DISPONÍVEL: {newDocAvailable.toUpperCase()}
+        </div>
+      )}
+
       {/* Content */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
         {renderContent()}
@@ -593,8 +647,8 @@ const App = () => {
 
       {/* Overlays */}
       {showAlert      && <AlertOverlay      data={alertData}          onDismiss={() => setShowAlert(false)} />}
-      {showMother     && <MotherOverlay     variant={motherVariant}   onDismiss={() => setShowMother(false)} />}
-      {showSecretNote && <SecretNoteOverlay text={secretNoteText}     onDismiss={() => setShowSecretNote(false)} />}
+      {showMother     && <MotherOverlay     variant={motherVariant}   text={motherText} onDismiss={() => { setShowMother(false); setMotherText(null); if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'OVERLAY_DISMISSED', overlayType: 'mother' })); }} />}
+      {showSecretNote && <SecretNoteOverlay text={secretNoteText}     onDismiss={() => { setShowSecretNote(false); setSecretNoteText(null); if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'OVERLAY_DISMISSED', overlayType: 'secret_note' })); }} />}
     </div>
   );
 };

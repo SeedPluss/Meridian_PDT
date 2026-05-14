@@ -57,12 +57,20 @@ const FrequencyUnlock = ({ onUnlock }) => {
 
 // ── W-Y private channel ────────────────────────────────────────────────────────
 
-const WYChannel = () => {
-  const WY_MSGS = [
-    { time:'09:41', sender:'W-Y OPS',   text:'Agente, confirme recebimento. Amostra intacta?', type:'wy' },
-    { time:'09:43', sender:'REEVES',    text:'Confirmado. Contêiner C012 intacto.', type:'self' },
-    { time:'09:44', sender:'W-Y OPS',   text:'Prioridade máxima. Tripulação dispensável.', type:'wy' },
-  ];
+const WYChannel = ({ wyHistory = [], onSendWY, wsOnline = true }) => {
+  const [inputText, setInputText] = React.useState('');
+  const msgEndRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (msgEndRef.current) msgEndRef.current.scrollTop = msgEndRef.current.scrollHeight;
+  }, [wyHistory]);
+
+  const handleSend = () => {
+    if (!inputText.trim() || !wsOnline) return;
+    if (onSendWY) onSendWY(inputText.trim());
+    setInputText('');
+  };
+
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       <div style={{ padding:'8px 14px 6px', flexShrink:0 }}>
@@ -70,8 +78,13 @@ const WYChannel = () => {
         <div style={mono(10, C.wyMain, { opacity:0.6 })}>WEYLAND-YUTANI CORP. — CLASSIFICADO</div>
       </div>
       <HRule color={C.wyMain} />
-      <div style={{ flex:1, overflowY:'auto', padding:'6px 0', scrollbarWidth:'none' }}>
-        {WY_MSGS.map((msg,i)=>(
+      <div ref={msgEndRef} style={{ flex:1, overflowY:'auto', padding:'6px 0', scrollbarWidth:'none' }}>
+        {wyHistory.length === 0 && (
+          <div style={mono(10, C.dim, { textAlign:'center', marginTop:'20px', opacity:0.5 })}>
+            Canal seguro. Aguardando transmissão W-Y...
+          </div>
+        )}
+        {wyHistory.map((msg,i)=>(
           <div key={i} style={{ padding:'4px 14px', paddingLeft:msg.type==='self'?'26px':'14px',
             borderLeft:msg.type==='self'?`2px solid ${C.wyMain}`:'none',
             marginLeft:msg.type==='self'?'12px':'0' }}>
@@ -86,11 +99,20 @@ const WYChannel = () => {
       <HRule color={C.wyMain} />
       <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px' }}>
         <span style={vt(22,C.wyMain)}>{'>'}</span>
-        <div style={{ flex:1, ...vt(18,C.wyMain), display:'flex', alignItems:'center' }}>
-          <Cursor color={C.wyMain} />
-        </div>
-        <button style={{ ...vt(16,C.wyMain), background:'transparent', border:`1px solid ${C.wyMain}`,
-          padding:'8px 14px', cursor:'pointer', minHeight:'44px' }}>ENVIAR</button>
+        <input
+          type="text"
+          value={inputText}
+          onChange={e => setInputText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
+          placeholder={wsOnline ? 'MENSAGEM W-Y...' : 'OFFLINE...'}
+          disabled={!wsOnline}
+          style={{ flex:1, background:'transparent', border:'none', outline:'none',
+            color:C.wyMain, fontFamily:"'VT323', monospace", fontSize:'18px',
+            caretColor:C.wyBright, opacity: wsOnline ? 1 : 0.4 }}
+        />
+        <button onClick={handleSend} disabled={!wsOnline} style={{ ...vt(16,C.wyMain), background:'transparent', border:`1px solid ${C.wyMain}`,
+          padding:'8px 14px', cursor: wsOnline ? 'pointer' : 'not-allowed', minHeight:'44px',
+          opacity: wsOnline ? 1 : 0.4 }}>ENVIAR</button>
       </div>
     </div>
   );
@@ -98,7 +120,7 @@ const WYChannel = () => {
 
 // ── CommsScreen ────────────────────────────────────────────────────────────────
 
-const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked = false, onSendMessage, onFrequencySubmit, onRead }) => {
+const CommsScreen = ({ commsState, isAndroid, history = [], wyHistory = [], unread = 0, unlocked = false, wsOnline = true, onSendMessage, onSendWY, onFrequencySubmit, onRead }) => {
   const [channel,    setChannel]    = React.useState('GERAL');
   const [inputText,  setInputText]  = React.useState('');
   const msgEndRef = React.useRef(null);
@@ -133,7 +155,7 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
         </div>
       </div>
       <HRule color={C.wyMain} />
-      <WYChannel />
+      <WYChannel wyHistory={wyHistory} onSendWY={onSendWY} wsOnline={wsOnline} />
     </div>
   );
 
@@ -202,17 +224,18 @@ const CommsScreen = ({ commsState, isAndroid, history = [], unread = 0, unlocked
       <div style={{ display:'flex', alignItems:'center', gap:'8px', padding:'8px 14px', flexShrink:0 }}>
         <span style={vt(22,C.main)}>{'>'}</span>
         <div style={{ flex:1, display:'flex', alignItems:'center', minHeight:'32px' }}>
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="MENSAGEM..."
-            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:C.main, fontFamily:"'VT323', monospace", fontSize:'18px', caretColor:C.bright }}
+            placeholder={wsOnline ? "MENSAGEM..." : "OFFLINE..."}
+            disabled={!wsOnline}
+            style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:C.main, fontFamily:"'VT323', monospace", fontSize:'18px', caretColor:C.bright, opacity: wsOnline ? 1 : 0.4 }}
           />
         </div>
-        <button onClick={handleSend} style={{ ...vt(16,C.main), background:'transparent', border:`1px solid ${C.main}`,
-          padding:'8px 14px', cursor:'pointer', minHeight:'44px' }}>ENVIAR</button>
+        <button onClick={handleSend} disabled={!wsOnline} style={{ ...vt(16,C.main), background:'transparent', border:`1px solid ${C.main}`,
+          padding:'8px 14px', cursor: wsOnline ? 'pointer' : 'not-allowed', minHeight:'44px', opacity: wsOnline ? 1 : 0.4 }}>ENVIAR</button>
       </div>
     </div>
   );

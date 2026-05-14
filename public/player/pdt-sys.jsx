@@ -48,7 +48,7 @@ const ANDROID_DIAG = {
 
 // ── SysList ────────────────────────────────────────────────────────────────────
 
-const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) => {
+const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector, character }) => {
   const mergedSystems = ALL_SYSTEMS.map(sys => {
     if (shipSystems && shipSystems[sys.id]) {
       return { ...sys, ...shipSystems[sys.id] };
@@ -61,8 +61,10 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
   // Let's modify the filter to ONLY show systems that the server has told us about, OR if it's explicitly online initially (though server should handle that).
   const visibleSystems = ALL_SYSTEMS.filter(sys => {
     const serverSys = shipSystems && shipSystems[sys.id];
+    // Se não há setor atual definido, mostrar todos os sistemas como fallback
+    if (!currentSector) return true;
     // Sempre mostrar sistemas do setor atual do jogador (exceto comms_lr que depende de progresso)
-    if (sys.sector && currentSector && sys.sector.toUpperCase() === currentSector.toUpperCase()) {
+    if (sys.sector && sys.sector.toUpperCase() === currentSector.toUpperCase()) {
       if (sys.id === 'comms_lr') return !!(serverSys && serverSys.detected);
       return true;
     }
@@ -71,7 +73,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
       return serverSys.detected || serverSys.panelUnlocked || serverSys.status === 'online' || serverSys.online === true;
     }
     return false;
-  }).map(sys => ({ ...sys, ...shipSystems[sys.id] }));
+  }).map(sys => ({ ...sys, ...(shipSystems && shipSystems[sys.id]) }));
 
   const bySectorDynamic = SECTOR_ORDER.map(s => ({
     sector: s,
@@ -81,7 +83,7 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '8px 14px 6px', flexShrink: 0 }}>
-        <div style={vt(22, C.main)}>SISTEMAS — TODOS OS SETORES</div>
+        <div style={vt(22, C.main)}>{currentSector ? `SISTEMAS — SETOR ${currentSector.toUpperCase()}` : 'SISTEMAS — TODOS OS SETORES'}</div>
       </div>
       <HRule />
       {isAndroid && (
@@ -138,22 +140,22 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
         {isAndroid && (
           <div style={{ padding: '12px 14px', borderTop: `1px solid ${C.dim}`, marginTop: '8px' }}>
             <div style={{ ...vt(18, C.cyan), marginBottom: '8px' }}>◈ LOCALIZAÇÃO DA EQUIPE</div>
-            {[
-              { name: 'KOWALSKI', sector: 'C1', time: '11:04' },
-              { name: 'CHEN', sector: 'B1', time: '11:07' },
-              { name: 'RODRIGUEZ', sector: 'C3', time: '11:02' },
-              { name: 'LIMA', sector: 'A2', time: '11:09' },
-              { name: 'SANTOS', sector: 'B2', time: '11:05' },
-              { name: 'OSEI', sector: 'A1', time: '11:08' },
-            ].map(p => (
-              <div key={p.name} style={{
+            {character && (
+              <div style={{
                 display: 'flex', justifyContent: 'space-between', padding: '4px 0',
                 borderBottom: `1px solid ${C.ghost}`
               }}>
-                <span style={vt(17, C.cyan)}>{p.name}</span>
-                <span style={mono(10, C.dim)}>{p.sector} — {p.time}</span>
+                <span style={vt(17, C.bright)}>{(character.nome || 'VOCÊ').toUpperCase()} (VOCÊ)</span>
+                <span style={mono(10, C.dim)}>{character.sector || currentSector || '—'}</span>
               </div>
-            ))}
+            )}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', padding: '4px 0',
+              borderBottom: `1px solid ${C.ghost}`
+            }}>
+              <span style={vt(17, C.cyan)}>OUTROS MEMBROS</span>
+              <span style={mono(10, C.dim)}>DADOS INDISPONÍVEIS</span>
+            </div>
           </div>
         )}
       </div>
@@ -163,8 +165,17 @@ const SysList = ({ onRepair, onUnlock, isAndroid, shipSystems, currentSector }) 
 
 // ── SysBriefing ────────────────────────────────────────────────────────────────
 
-const SysBriefing = ({ system, onStart, onCancel, isAndroid }) => {
-  const diag = ANDROID_DIAG[system.id];
+const SysBriefing = ({ system, onStart, onCancel, isAndroid, activeBriefingSystem }) => {
+  const serverDiag = activeBriefingSystem?.androidDiagnostic;
+  const fallbackDiag = ANDROID_DIAG[system.id];
+  const diag = serverDiag
+    ? {
+        temp: serverDiag.sectorTemperature != null ? `${serverDiag.sectorTemperature}°C` : (fallbackDiag?.temp || '—'),
+        integrity: serverDiag.integrity != null ? serverDiag.integrity : fallbackDiag?.integrity,
+        time: serverDiag.estimatedTime || fallbackDiag?.time || '—',
+        warning: serverDiag.warning != null ? serverDiag.warning : fallbackDiag?.warning,
+      }
+    : fallbackDiag;
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '8px 14px 6px', flexShrink: 0, borderBottom: `1px solid ${C.dim}` }}>
@@ -304,7 +315,7 @@ const getDifficultyLevel = (character, requiredSkill) => {
   return 1; // Level 1: Treinado
 };
 
-const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand, currentSector, repairFrequency }) => {
+const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, onRepairCommand, onRepairRequest, activeBriefingSystem, currentSector, repairFrequency }) => {
   // Store frequency in a way the success screen can see it
   React.useEffect(() => {
     if (repairFrequency) window.repairFrequency = repairFrequency;
@@ -315,10 +326,11 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
   const startTimeRef = React.useRef(null);
   const processingRef = React.useRef(false);
 
-  const handleRepair = (sys) => { 
-    setSelectedSys(sys); 
-    setSysState('briefing'); 
-    processingRef.current = false; 
+  const handleRepair = (sys) => {
+    setSelectedSys(sys);
+    if (onRepairRequest) onRepairRequest(sys.id);
+    setSysState('briefing');
+    processingRef.current = false;
   };
   const handleStart = () => { 
     startTimeRef.current = Date.now(); 
@@ -348,7 +360,7 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
   };
 
   if (sysState === 'briefing') {
-    return <SysBriefing system={selectedSys || ALL_SYSTEMS[0]} onStart={handleStart} onCancel={handleCancel} isAndroid={isAndroid} />;
+    return <SysBriefing system={selectedSys || ALL_SYSTEMS[0]} onStart={handleStart} onCancel={handleCancel} isAndroid={isAndroid} activeBriefingSystem={activeBriefingSystem} />;
   }
 
   if (sysState === 'minigame') {
@@ -372,7 +384,7 @@ const SysScreen = ({ sysState, setSysState, character, isAndroid, shipSystems, o
     return <SysResult success={false} system={selectedSys} onBack={() => setSysState('list')} />;
   }
 
-  return <SysList onRepair={handleRepair} isAndroid={isAndroid} shipSystems={shipSystems} currentSector={currentSector} />;
+  return <SysList onRepair={handleRepair} isAndroid={isAndroid} shipSystems={shipSystems} currentSector={currentSector} character={character} />;
 };
 
 Object.assign(window, { SysScreen });

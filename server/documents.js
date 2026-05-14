@@ -14,7 +14,7 @@ function loadDocuments() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     // create a dummy document for test if empty
     const dummy = {
-      id: "DOC-WY06", title: "W-Y OPERATIONS OVERRIDE", sector: "A2", level: 3,
+      id: "doc-wy06", title: "W-Y OPERATIONS OVERRIDE", sector: "A2", level: 3,
       content: "Override command: [AUTHORIZE] [BYPASS] [OVERRIDE] [EXECUTE]"
     };
     fs.writeFileSync(path.join(DATA_DIR, 'doc-wy06.json'), JSON.stringify(dummy));
@@ -24,6 +24,7 @@ function loadDocuments() {
     for (const file of files) {
       const raw = fs.readFileSync(path.join(DATA_DIR, file), 'utf8');
       const doc = JSON.parse(raw);
+      doc.id = (doc.id || '').toLowerCase();
       _docs.set(doc.id, doc);
     }
   }
@@ -59,6 +60,7 @@ function getIndex(playerId) {
 }
 
 function getDocumentAccess(playerId, documentId) {
+  documentId = (documentId || '').toLowerCase();
   const player = state.players[playerId];
   const doc = _docs.get(documentId);
   if (!doc || !player) return false;
@@ -70,10 +72,12 @@ function getDocumentAccess(playerId, documentId) {
 }
 
 function getDoc(id) {
+  id = (id || '').toLowerCase();
   return _docs.get(id) || null;
 }
 
 function unlockDoc(id) {
+  id = (id || '').toLowerCase();
   if (!_docs.has(id)) return false;
   if (!state.unlockedDocs.includes(id)) {
     state.unlockedDocs.push(id);
@@ -82,6 +86,7 @@ function unlockDoc(id) {
 }
 
 function injectDoc(doc) {
+  doc.id = (doc.id || '').toLowerCase();
   _docs.set(doc.id, doc);
 }
 

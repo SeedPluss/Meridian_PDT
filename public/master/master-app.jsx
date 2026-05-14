@@ -320,11 +320,13 @@ const TabMsg = ({ players, onCommand, chatHistory = [] }) => {
   const [noteText,setNoteText]= React.useState('');
   const [noteDest,setNoteDest]= React.useState(players[0]?.id || 1);
   const [sent,    setSent]    = React.useState([]);
+  const [wyText,  setWyText]  = React.useState('');
+  const [wySent,  setWySent]  = React.useState([]);
 
   const send = (type) => {
     if (!text.trim() && type!=='note') return;
     if (!noteText.trim() && type==='note') return;
-    
+
     if (type === 'mother') {
       onCommand({ type: 'MASTER_SEND_MOTHER', targetPlayerId: dest, voice, text });
     } else {
@@ -333,6 +335,14 @@ const TabMsg = ({ players, onCommand, chatHistory = [] }) => {
 
     setSent(s=>[...s, { type, dest: type==='note'?noteDest:dest, voice, text: type==='note'?noteText:text, time: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) }]);
     if (type==='note') setNoteText(''); else setText('');
+  };
+
+  const sendWY = () => {
+    if (!wyText.trim()) return;
+    onCommand({ type: 'WY_MESSAGE', text: wyText });
+    const timeStr = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    setWySent(s => [...s, { text: wyText, time: timeStr }].slice(-5));
+    setWyText('');
   };
 
   const inputStyle = { width:'100%', border:`1px solid ${MC.dim}`, padding:'6px 8px',
@@ -379,6 +389,32 @@ const TabMsg = ({ players, onCommand, chatHistory = [] }) => {
           <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} placeholder="Nota privada (só o jogador vê)..." style={{...inputStyle, borderColor:MC.dim, color:MC.main}} />
           <Btn col={MC.main} sz={15} onClick={()=>send('note')} style={{marginTop:'6px', width:'100%'}}>[ ENVIAR NOTA SECRETA ]</Btn>
         </div>
+
+        <HR />
+
+        {/* W-Y Channel */}
+        <div>
+          <div style={mo(10,MC.wy,{letterSpacing:'.06em', marginBottom:'8px', textShadow:`0 0 6px ${MC.wy}`})}>⬡ CANAL W-Y — ANDROID</div>
+          <div style={mo(9,MC.dim,{marginBottom:'6px'})}>Transmissão direta para o android. Classificado.</div>
+          <textarea
+            value={wyText}
+            onChange={e=>setWyText(e.target.value)}
+            placeholder="Mensagem para o android..."
+            style={{...inputStyle, borderColor:MC.wy, color:MC.wyB, minHeight:'56px'}}
+          />
+          <Btn col={MC.wyB} sz={15} onClick={sendWY} style={{marginTop:'6px', width:'100%', borderColor:MC.wy}}>[ ENVIAR PARA ANDROID ]</Btn>
+          {wySent.length > 0 && (
+            <div style={{marginTop:'8px'}}>
+              <div style={mo(9,MC.dim,{marginBottom:'4px'})}>ENVIADAS (últimas 5):</div>
+              {[...wySent].reverse().map((m,i)=>(
+                <div key={i} style={{padding:'3px 0', borderBottom:`1px solid ${MC.ghost}`}}>
+                  <span style={mo(9,MC.dim)}>[{m.time}] </span>
+                  <span style={vt(14,MC.wy)}>{m.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Middle: Chat Log */}
@@ -418,11 +454,23 @@ const TabMsg = ({ players, onCommand, chatHistory = [] }) => {
 // ── TAB: ALERTAS ──────────────────────────────────────────────────────────────
 
 const TabAlertas = ({ players, onCommand }) => {
-  const [alertMsg,  setAlertMsg]  = React.useState('');
-  const [alertSec,  setAlertSec]  = React.useState('B1');
-  const [cdText,    setCdText]    = React.useState('AUTODESTRUIÇÃO');
-  const [cdMins,    setCdMins]    = React.useState(15);
-  const [cdRunning, setCdRunning] = React.useState(false);
+  const [alertMsg,    setAlertMsg]    = React.useState('');
+  const [alertSec,    setAlertSec]    = React.useState('B1');
+  const [cdText,      setCdText]      = React.useState('AUTODESTRUIÇÃO');
+  const [cdMins,      setCdMins]      = React.useState(15);
+  const [cdRunning,   setCdRunning]   = React.useState(false);
+
+  // PDT Tool state
+  const [toolTargets,  setToolTargets]  = React.useState({
+    'VIBRAÇÃO SILENCIOSA': 'TODOS',
+    'BLOQUEAR ABA':        'TODOS',
+    'REVELAR POSIÇÃO':     'TODOS',
+    'CORROMPER DOCUMENTO': 'TODOS',
+  });
+  const [selectedTab,  setSelectedTab]  = React.useState('tracker');
+  const [selectedDocId,setSelectedDocId]= React.useState('');
+  const [corruptText,  setCorruptText]  = React.useState('');
+  const [toolFeedback, setToolFeedback] = React.useState({});
 
   const startAlert = (global) => {
     onCommand({
@@ -431,7 +479,6 @@ const TabAlertas = ({ players, onCommand }) => {
       voice: 'seegson',
       text: `ALERTA: ${alertMsg}`
     });
-    // Also vibrate
     onCommand({ type: 'MASTER_VIBRATE', targetPlayerId: global ? 'TODOS' : alertSec });
   };
 
@@ -442,12 +489,38 @@ const TabAlertas = ({ players, onCommand }) => {
     setCdRunning(!cdRunning);
   };
 
-  const runTool = (tool, target) => {
-    if (tool === 'VIBRAÇÃO SILENCIOSA') {
-      onCommand({ type: 'MASTER_VIBRATE', targetPlayerId: target });
-    }
-    // other tools can be added here
+  const flashFeedback = (label) => {
+    setToolFeedback(prev => ({ ...prev, [label]: true }));
+    setTimeout(() => setToolFeedback(prev => ({ ...prev, [label]: false })), 1500);
   };
+
+  const runTool = (label) => {
+    const targetPlayerId = toolTargets[label];
+    if (label === 'VIBRAÇÃO SILENCIOSA') {
+      onCommand({ type: 'MASTER_VIBRATE', targetPlayerId });
+      flashFeedback(label);
+    } else if (label === 'BLOQUEAR ABA') {
+      onCommand({ type: 'MASTER_BLOCK_TAB', targetPlayerId, tab: selectedTab });
+      flashFeedback(label);
+    } else if (label === 'REVELAR POSIÇÃO') {
+      onCommand({ type: 'MASTER_REVEAL_POSITION', targetPlayerId });
+      flashFeedback(label);
+    } else if (label === 'CORROMPER DOCUMENTO') {
+      if (!selectedDocId.trim()) return;
+      if (!corruptText.trim()) return;
+      onCommand({ type: 'MASTER_CORRUPT_DOC', targetPlayerId, docId: selectedDocId.trim(), text: corruptText });
+      flashFeedback(label);
+    }
+  };
+
+  const setTarget = (label, val) => setToolTargets(prev => ({ ...prev, [label]: val }));
+
+  const TOOLS = [
+    { label:'VIBRAÇÃO SILENCIOSA', desc:'Enviar alerta sem texto' },
+    { label:'BLOQUEAR ABA',        desc:'Suspender acesso a uma aba' },
+    { label:'REVELAR POSIÇÃO',     desc:'Mostrar localização de jogador' },
+    { label:'CORROMPER DOCUMENTO', desc:'Alterar texto de um documento' },
+  ];
 
   return (
     <div style={{flex:1, overflowY:'auto', scrollbarWidth:'thin', padding:'12px', display:'flex', flexDirection:'column', gap:'14px'}}>
@@ -498,28 +571,64 @@ const TabAlertas = ({ players, onCommand }) => {
       {/* PDT Tools */}
       <div>
         <div style={mo(10,MC.dim,{letterSpacing:'.06em', marginBottom:'10px'})}>FERRAMENTAS DE PDT</div>
-        {[
-          { label:'VIBRAÇÃO SILENCIOSA', desc:'Enviar alerta sem texto' },
-          { label:'BLOQUEAR ABA',        desc:'Suspender acesso a uma aba' },
-          { label:'REVELAR POSIÇÃO',     desc:'Mostrar localização de jogador' },
-          { label:'CORROMPER DOCUMENTO', desc:'Alterar texto de um documento' },
-        ].map(tool=>(
-          <div key={tool.label} style={{display:'flex', justifyContent:'space-between', alignItems:'center',
-            padding:'8px 0', borderBottom:`1px solid ${MC.ghost}`}}>
-            <div>
-              <div style={vt(16,MC.main)}>{tool.label}</div>
-              <div style={mo(9,MC.dim)}>{tool.desc}</div>
+        {TOOLS.map(tool=>(
+          <div key={tool.label} style={{borderBottom:`1px solid ${MC.ghost}`, paddingBottom:'10px', marginBottom:'10px'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'4px'}}>
+              <div>
+                <div style={vt(16,MC.main)}>{tool.label}</div>
+                <div style={mo(9,MC.dim)}>{tool.desc}</div>
+              </div>
+              <div style={{display:'flex', gap:'6px', alignItems:'center'}}>
+                <select
+                  value={toolTargets[tool.label]}
+                  onChange={e=>setTarget(tool.label, e.target.value)}
+                  style={{padding:'3px 5px', fontSize:'11px', minWidth:'80px'}}>
+                  <option value="TODOS">TODOS</option>
+                  {players.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <Btn
+                  col={toolFeedback[tool.label] ? MC.bright : MC.amber}
+                  sz={13}
+                  onClick={() => runTool(tool.label)}
+                  style={toolFeedback[tool.label] ? {boxShadow: glow(MC.bright)} : {}}>
+                  {toolFeedback[tool.label] ? 'ENVIADO' : 'EXECUTAR'}
+                </Btn>
+              </div>
             </div>
-            <div style={{display:'flex', gap:'6px', alignItems:'center'}}>
-              <select id={`tool-target-${tool.label}`} style={{padding:'3px 5px', fontSize:'11px', minWidth:'80px'}}>
-                <option value="TODOS">TODOS</option>
-                {players.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <Btn col={MC.amber} sz={13} onClick={() => {
-                const target = document.getElementById(`tool-target-${tool.label}`).value;
-                runTool(tool.label, target);
-              }}>EXECUTAR</Btn>
-            </div>
+            {/* Extra inputs for BLOQUEAR ABA */}
+            {tool.label === 'BLOQUEAR ABA' && (
+              <div style={{display:'flex', alignItems:'center', gap:'8px', marginTop:'4px'}}>
+                <span style={mo(9,MC.dim)}>ABA:</span>
+                <select value={selectedTab} onChange={e=>setSelectedTab(e.target.value)}
+                  style={{padding:'3px 5px', fontSize:'11px'}}>
+                  {['tracker','comms','docs','sys'].map(t=><option key={t} value={t}>{t.toUpperCase()}</option>)}
+                </select>
+              </div>
+            )}
+            {/* Extra inputs for CORROMPER DOCUMENTO */}
+            {tool.label === 'CORROMPER DOCUMENTO' && (
+              <div style={{display:'flex', flexDirection:'column', gap:'4px', marginTop:'4px'}}>
+                <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                  <span style={mo(9,MC.dim)}>DOC ID:</span>
+                  <input
+                    value={selectedDocId}
+                    onChange={e=>setSelectedDocId(e.target.value)}
+                    placeholder="ex: maintenance-log-w16"
+                    style={{flex:1, padding:'3px 6px', fontSize:'11px', border:`1px solid ${MC.dim}`, color:MC.main}}
+                  />
+                </div>
+                <div style={{display:'flex', alignItems:'flex-start', gap:'8px'}}>
+                  <span style={{...mo(9,MC.dim), paddingTop:'4px'}}>TEXTO:</span>
+                  <textarea
+                    value={corruptText}
+                    onChange={e=>setCorruptText(e.target.value)}
+                    placeholder="Conteúdo corrompido..."
+                    rows={3}
+                    style={{flex:1, padding:'3px 6px', fontSize:'11px', border:`1px solid ${MC.dim}`, color:MC.main, resize:'vertical', minHeight:'48px'}}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -705,7 +814,7 @@ const MasterApp = () => {
     {id:'msg',       label:'MSG'},
     {id:'alertas',   label:'ALERTAS'},
     {id:'sistemas',  label:'SISTEMAS'},
-    {id:'sistema',   label:'SISTEMA'},
+    {id:'log',       label:'LOG'},
   ];
 
   return (
@@ -750,7 +859,7 @@ const MasterApp = () => {
         {tab==='msg'       && <TabMsg       players={players} chatHistory={chatHistory} onCommand={sendCmd} />}
         {tab==='alertas'   && <TabAlertas   players={players} onCommand={sendCmd} />}
         {tab==='sistemas'  && <TabSistemas  players={players} unlockedSystems={unlockedSystems} onCommand={sendCmd} />}
-        {tab === 'sistema' && (
+        {tab === 'log' && (
           <div style={{padding:'20px', color:MC.main, fontFamily:'monospace', fontSize:'12px', overflowY:'auto', flex:1}}>
             <div style={{color:MC.cyan, marginBottom:'10px', fontSize:'14px'}}>LOG DE COMUNICAÇÃO (Últimos 10 pacotes):</div>
             <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>

@@ -176,9 +176,9 @@ wss.on('connection', (ws) => {
             lastLocationUpdate: Date.now()
           };
           
-          sendTo(ws, { 
-            type: 'LOGIN_OK', 
-            character: { ...char, isAndroid: undefined } 
+          sendTo(ws, {
+            type: 'LOGIN_OK',
+            character: state.players[char.id]
           });
           sendTo(ws, { type: 'TRACKER_STATE', state: state.systems.motion_tracker.online ? 'online' : 'offline' });
           const currentSector = state.players[char.id].sector;
@@ -332,6 +332,22 @@ wss.on('connection', (ws) => {
           });
         }
 
+        // Special case: Comms LR success unlocks doc-wy06
+        if (systemId === 'comms_lr' && success) {
+          console.log('[DEBUG] Comms Long Range consertado! Desbloqueando doc-wy06...');
+          const player = state.players[info.id];
+          if (player) {
+            if (!player.downloadedDocs.includes('doc-wy06')) {
+              player.downloadedDocs.push('doc-wy06');
+            }
+            const wy06Doc = documents.getDoc('doc-wy06');
+            if (wy06Doc && ws.readyState === OPEN) {
+              sendTo(ws, { type: 'DOCUMENT_UNLOCKED', doc: wy06Doc });
+              console.log(`[WS] Enviado DOCUMENT_UNLOCKED (doc-wy06) para ${info.id}`);
+            }
+          }
+        }
+
         // Special case: Comms Local unlocks Comms LR
         if (systemId === 'comms_local' && success) {
           console.log('[DEBUG] Comms Local consertado! Liberando Comms Long Range...');
@@ -396,10 +412,30 @@ wss.on('connection', (ws) => {
 
       case 'MASTER_UNLOCK_DOC': {
         if (info.role !== 'master') break;
-        const { documentId } = msg;
-        console.log(`[DEBUG] Master desbloqueando documento ${documentId} globalmente.`);
-        
+        const { targetPlayerId: docTargetPlayerId } = msg;
+        const documentId = (msg.documentId || '').trim().toLowerCase();
+        console.log(`[DEBUG] Master desbloqueando documento ${documentId} para target: ${docTargetPlayerId || 'global'}.`);
+
         documents.unlockDoc(documentId);
+
+        // Notify target player(s) that a document ID is now available for download
+        // (do NOT add to downloadedDocs or send full doc — player must use BAIXAR)
+        const unlockedDoc = documents.getDoc(documentId);
+        if (unlockedDoc) {
+          const availableMsg = { type: 'DOCUMENT_AVAILABLE', docId: documentId };
+          if (!docTargetPlayerId || docTargetPlayerId === 'TODOS') {
+            broadcastToPlayers(availableMsg);
+          } else {
+            const docTarget = findTargetClient(docTargetPlayerId);
+            if (docTarget && docTarget.ws.readyState === OPEN) {
+              sendTo(docTarget.ws, availableMsg);
+              console.log(`[WS] Enviado DOCUMENT_AVAILABLE (${documentId}) para ${docTarget.info.id}`);
+            } else {
+              console.log(`[DEBUG] Nenhuma conexão ativa encontrada para enviar DOCUMENT_AVAILABLE: ${docTargetPlayerId}`);
+            }
+          }
+        }
+
         broadcastToMasters({ type: 'FULL_STATE', state });
         break;
       }
@@ -550,17 +586,77 @@ wss.on('connection', (ws) => {
         clients.forEach((c, targetWs) => {
           const pState = state.players[c.id];
           const isTarget = (
-            targetPlayerId === 'TODOS' || 
-            c.id == targetPlayerId || 
+            targetPlayerId === 'TODOS' ||
+            c.id == targetPlayerId ||
             (pState && pState.sector === targetPlayerId)
           );
+          if (c.role !== 'player') return;
           if (isTarget && targetWs.readyState === OPEN) {
             sendTo(targetWs, { type: 'VIBRATE_SILENT' });
           }
         });
         break;
       }
-      
+
+      case 'MASTER_BLOCK_TAB': {
+        if (info.role !== 'master') break;
+        const { targetPlayerId, tab } = msg;
+        console.log(`[MASTER] BLOCK_TAB tab=${tab} target=${targetPlayerId}`);
+        if (targetPlayerId === 'TODOS') {
+          clients.forEach((c, targetWs) => {
+            if (c.role === 'player' && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'TAB_BLOCKED', tab });
+            }
+          });
+        } else {
+          const target = findTargetClient(targetPlayerId);
+          if (target) sendTo(target.ws, { type: 'TAB_BLOCKED', tab });
+          else console.log(`[MASTER] BLOCK_TAB: nenhuma conexão para ${targetPlayerId}`);
+        }
+        break;
+      }
+
+      case 'MASTER_REVEAL_POSITION': {
+        if (info.role !== 'master') break;
+        const { targetPlayerId } = msg;
+        console.log(`[MASTER] REVEAL_POSITION target=${targetPlayerId}`);
+        if (targetPlayerId === 'TODOS') {
+          clients.forEach((c, targetWs) => {
+            if (c.role === 'player' && targetWs.readyState === OPEN) {
+              const player = state.players[c.id];
+              sendTo(targetWs, { type: 'POSITION_REVEALED', sector: player?.sector });
+            }
+          });
+        } else {
+          const target = findTargetClient(targetPlayerId);
+          if (target) {
+            const player = state.players[target.info.id];
+            sendTo(target.ws, { type: 'POSITION_REVEALED', sector: player?.sector });
+          } else {
+            console.log(`[MASTER] REVEAL_POSITION: nenhuma conexão para ${targetPlayerId}`);
+          }
+        }
+        break;
+      }
+
+      case 'MASTER_CORRUPT_DOC': {
+        if (info.role !== 'master') break;
+        const { targetPlayerId, docId, text } = msg;
+        console.log(`[MASTER] CORRUPT_DOC docId=${docId} target=${targetPlayerId}`);
+        if (targetPlayerId === 'TODOS') {
+          clients.forEach((c, targetWs) => {
+            if (c.role === 'player' && targetWs.readyState === OPEN) {
+              sendTo(targetWs, { type: 'DOC_CORRUPTED', docId, text });
+            }
+          });
+        } else {
+          const target = findTargetClient(targetPlayerId);
+          if (target) sendTo(target.ws, { type: 'DOC_CORRUPTED', docId, text });
+          else console.log(`[MASTER] CORRUPT_DOC: nenhuma conexão para ${targetPlayerId}`);
+        }
+        break;
+      }
+
       // CHAT messages
       case 'COMMS_AUTH_REQUEST': {
         const { frequency } = msg;
@@ -632,6 +728,25 @@ wss.on('connection', (ws) => {
         } else {
           console.log('[MASTER] Sincronismo negado: não autorizado.');
         }
+        break;
+      }
+
+      case 'WY_MESSAGE': {
+        if (info.role !== 'master') break;
+        const { text: wyText } = msg;
+        if (!wyText) break;
+        const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        console.log(`[WY] Master enviando mensagem W-Y para android: ${wyText}`);
+        // Find the android player and send to them
+        let androidFound = false;
+        clients.forEach((c, targetWs) => {
+          if (c.role === 'player' && state.players[c.id]?.isAndroid && targetWs.readyState === OPEN) {
+            sendTo(targetWs, { type: 'WY_CHANNEL_MSG', text: wyText, time: timeStr });
+            androidFound = true;
+            console.log(`[WY] WY_CHANNEL_MSG enviado para android: ${c.id}`);
+          }
+        });
+        if (!androidFound) console.log('[WY] Android não encontrado ou offline.');
         break;
       }
 

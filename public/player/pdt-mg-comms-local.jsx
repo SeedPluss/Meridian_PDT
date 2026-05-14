@@ -51,7 +51,7 @@ const MinigameCommsLocal = ({ onSuccess, onFailure }) => {
   // Frequency hold
   React.useEffect(() => {
     if (phase !== 'freq') return;
-    const inZone = Math.abs(freq - CORRECT_FREQ) <= 2;
+    const inZone = noise > 0.9;
     if (!inZone) { setFreqHold(0); return; }
     const iv = setInterval(() => setFreqHold(h => {
       if (h >= 2) { clearInterval(iv); setTimeout(onSuccess, 600); return 0; }

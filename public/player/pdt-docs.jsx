@@ -158,6 +158,16 @@ const DocReader = ({ doc, allDocs, onBack }) => {
     if (!doc.content) return 'NENHUM CONTEÚDO DISPONÍVEL.';
     if (typeof doc.content === 'string') return doc.content;
     if (doc.content.body) return doc.content.body;
+    if (doc.content.text) return doc.content.text;
+    if (Array.isArray(doc.content.entries)) {
+      return doc.content.entries.map(e => {
+        const header = `[${e.timestamp || '---'}] ${e.system || ''}`.trim();
+        const body   = e.action
+          ? (e.notes ? `${e.action}: ${e.notes}` : e.action)
+          : (e.notes || '');
+        return body ? `${header}\n${body}` : header;
+      }).join('\n\n');
+    }
     return JSON.stringify(doc.content, null, 2);
   };
 
@@ -200,7 +210,7 @@ const DocError = ({ type, level, onBack }) => (
 
 // ── DocsScreen orchestrator ────────────────────────────────────────────────────
 
-const DocsScreen = ({ docsState, setDocsState, selectedDoc, setSelectedDoc, unlockedDocs, isAndroid, onDownloadRequest, downloadError }) => {
+const DocsScreen = ({ docsState, setDocsState, selectedDoc, setSelectedDoc, unlockedDocs, isAndroid, onDownloadRequest, downloadError, onDlActive }) => {
   const [idInput,    setIdInput]    = React.useState('');
   const [dlState,    setDlState]    = React.useState(null); // null | 'loading' | 'error'
   const [dlDocId,    setDlDocId]    = React.useState('');
@@ -213,6 +223,7 @@ const DocsScreen = ({ docsState, setDocsState, selectedDoc, setSelectedDoc, unlo
   React.useEffect(() => {
     if (docsState === 'reading' && dlState === 'loading') {
       setDlState(null);
+      if (onDlActive) onDlActive(false);
     }
   }, [docsState]);
 
@@ -228,6 +239,7 @@ const DocsScreen = ({ docsState, setDocsState, selectedDoc, setSelectedDoc, unlo
     setDlDocId(docId);
     setIdInput('');
     setDlState('loading');
+    if (onDlActive) onDlActive(true);
   };
 
   const handleDlComplete = (docId) => {
@@ -239,13 +251,14 @@ const DocsScreen = ({ docsState, setDocsState, selectedDoc, setSelectedDoc, unlo
     setErrType(type);
     setErrLevel(level);
     setDlState('error');
+    if (onDlActive) onDlActive(false);
   };
 
   if (dlState === 'loading') {
     return <DocDownload docId={dlDocId} onComplete={handleDlComplete} onError={handleDlError} />;
   }
   if (dlState === 'error') {
-    return <DocError type={errType} level={errLevel} onBack={() => setDlState(null)} />;
+    return <DocError type={errType} level={errLevel} onBack={() => { setDlState(null); if (onDlActive) onDlActive(false); }} />;
   }
   if (docsState === 'reading' && selectedDoc) {
     return <DocReader doc={selectedDoc} allDocs={visibleDocs} onBack={() => setDocsState('list')} />;
