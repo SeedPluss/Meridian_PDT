@@ -15,25 +15,64 @@ const getDirectionLabel = (angle) => {
   return '---';
 };
 
+// Shortest signed angular difference in degrees, result in [-180, 180]
+const angleDeltaDeg = (from, to) => ((to - from + 540) % 360) - 180;
+// Smoothstep ease
+const ease = t => t * t * (3 - 2 * t);
+
 const RadarCanvas = ({ threatActive, blips }) => {
   const canvasRef          = React.useRef(null);
   const rafRef             = React.useRef(null);
   const stateRef           = React.useRef({ angle: 0 });
   const blipsRef           = React.useRef(blips);
   const blipTimestampsRef  = React.useRef({});
+  // Per-blip interpolation state: key → { srcAngle, srcDist, dstAngle, dstDist, t, dur, type, lastSeen }
+  const blipInterpRef      = React.useRef({});
+  const lastFrameRef       = React.useRef(null);
 
   React.useEffect(() => {
     blipsRef.current = blips;
-    // Update last-seen timestamp for every blip currently present
-    if (Array.isArray(blips)) {
-      const now = Date.now();
-      blips.forEach(blip => {
-        const key = blip.id != null
-          ? String(blip.id)
-          : `${blip.angle}-${blip.type}`;
-        blipTimestampsRef.current[key] = now;
-      });
-    }
+    if (!Array.isArray(blips)) return;
+    const now = Date.now();
+    const INTERP_DUR = 1.6; // seconds to travel between positions
+
+    blips.forEach(blip => {
+      const key = blip.id != null ? String(blip.id) : `${blip.type}`;
+      blipTimestampsRef.current[key] = now;
+
+      const existing = blipInterpRef.current[key];
+      if (existing) {
+        // Compute current interpolated position as new source
+        const p = ease(Math.min(1, existing.t));
+        const curAngle = existing.srcAngle + angleDeltaDeg(existing.srcAngle, existing.dstAngle) * p;
+        const curDist  = existing.srcDist  + (existing.dstDist  - existing.srcDist)  * p;
+        blipInterpRef.current[key] = {
+          srcAngle: curAngle, srcDist: curDist,
+          dstAngle: blip.angle, dstDist: blip.distance,
+          t: 0, dur: INTERP_DUR,
+          type: blip.type, lastSeen: now,
+        };
+      } else {
+        // First time seeing this blip — start at its position (no animation)
+        blipInterpRef.current[key] = {
+          srcAngle: blip.angle, srcDist: blip.distance,
+          dstAngle: blip.angle, dstDist: blip.distance,
+          t: 1, dur: INTERP_DUR,
+          type: blip.type, lastSeen: now,
+        };
+      }
+    });
+
+    // Mark blips no longer in server list so they can expire via TTL
+    Object.keys(blipInterpRef.current).forEach(key => {
+      const stillPresent = blips.some(b =>
+        (b.id != null ? String(b.id) : `${b.type}`) === key
+      );
+      // Don't remove — let blipTimestampsRef TTL handle expiry in draw loop
+      if (!stillPresent) {
+        // Don't update lastSeen so the 1500ms TTL will naturally expire it
+      }
+    });
   }, [blips]);
 
   React.useEffect(() => {
@@ -42,7 +81,19 @@ const RadarCanvas = ({ threatActive, blips }) => {
     const ctx = canvas.getContext('2d');
     const S = 260, cx = S / 2, cy = S / 2, R = S / 2 - 6;
 
-    const draw = () => {
+    const draw = (timestamp) => {
+      // Delta time in seconds for smooth interpolation regardless of framerate
+      const dt = lastFrameRef.current !== null
+        ? Math.min((timestamp - lastFrameRef.current) / 1000, 0.1)
+        : 0;
+      lastFrameRef.current = timestamp;
+
+      // Advance all blip interpolations
+      const nowMs = Date.now();
+      Object.values(blipInterpRef.current).forEach(b => {
+        b.t = Math.min(1, b.t + dt / b.dur);
+      });
+
       const { angle } = stateRef.current;
       ctx.clearRect(0, 0, S, S);
 
@@ -120,54 +171,51 @@ const RadarCanvas = ({ threatActive, blips }) => {
 
       ctx.restore(); // end clip
 
-      // ── Threat blips (from props, filtered to last 1500ms) ──
-      const BLIP_TTL = 1500;
-      const now = Date.now();
-      const allBlips = Array.isArray(blipsRef.current) ? blipsRef.current : [];
-      const currentBlips = allBlips.filter(blip => {
-        const key = blip.id != null
-          ? String(blip.id)
-          : `${blip.angle}-${blip.type}`;
+      // ── Threat blips — interpolated smooth movement ──────────
+      const BLIP_TTL = 3000; // ms — longer to cover inter-update gaps
+      const activeInterps = Object.entries(blipInterpRef.current).filter(([key]) => {
         const ts = blipTimestampsRef.current[key];
-        return ts !== undefined && (now - ts) <= BLIP_TTL;
+        return ts !== undefined && (nowMs - ts) <= BLIP_TTL;
       });
-      if (currentBlips.length > 0) {
-        currentBlips.forEach(blip => {
-          // Angle mapping: Server 0 deg = Up (canvas -90 deg or -PI/2)
-          const bAngle = blip.angle !== undefined ? (blip.angle - 90) * (Math.PI / 180) : 0;
-          // Distance mapping: Server 0.0-1.0 maps directly to R
-          const bDist = blip.distance !== undefined ? blip.distance * R : R * 0.5;
-          
-          const tx = cx + Math.cos(bAngle) * bDist;
-          const ty = cy + Math.sin(bAngle) * bDist;
-          
-          // Radar pulse effect - only show when sweep is near or constant?
-          // Let's make it more cinematic: intensity based on how close the sweep is.
-          const angleDiff = Math.abs((angle - bAngle + Math.PI * 3) % (Math.PI * 2) - Math.PI);
-          const intensity = Math.max(0.1, 1 - angleDiff / 1.2);
-          
-          const pulse = 10 + (Math.sin(Date.now() / 200) * 0.5 + 0.5) * 8;
-          
-          const blipColor = blip.type === 'scavenger' ? '#ffaa00'
-                          : blip.type === 'player'    ? '#44ff88'
-                          : '#ff2a2a'; // organism or unknown → red
 
-          ctx.save();
-          ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
-          ctx.shadowColor = blipColor;
-          ctx.shadowBlur  = 14 * intensity;
-          ctx.fillStyle   = blipColor;
-          ctx.globalAlpha = 0.3 + intensity * 0.7;
-          ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
+      activeInterps.forEach(([, b]) => {
+        const p = ease(b.t);
+        // Interpolate angle (degrees) along shortest path, then convert to canvas radians
+        const interpAngleDeg = b.srcAngle + angleDeltaDeg(b.srcAngle, b.dstAngle) * p;
+        const interpDist     = b.srcDist  + (b.dstDist - b.srcDist) * p;
 
-          ctx.globalAlpha = 0.2 + intensity * 0.4;
-          ctx.strokeStyle = blipColor;
-          ctx.lineWidth = 1.5;
-          ctx.shadowBlur = 0;
-          ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
-          ctx.restore();
-        });
-      }
+        // Canvas angle: server 0° = up = canvas -90° (-π/2)
+        const bAngle = (interpAngleDeg - 90) * (Math.PI / 180);
+        const bDist  = interpDist * R;
+
+        const tx = cx + Math.cos(bAngle) * bDist;
+        const ty = cy + Math.sin(bAngle) * bDist;
+
+        // Intensity: brighter when sweep line is near this blip
+        const angleDiff = Math.abs((angle - bAngle + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+        const intensity = Math.max(0.15, 1 - angleDiff / 1.5);
+
+        const pulse = 10 + (Math.sin(nowMs / 300) * 0.5 + 0.5) * 7;
+
+        const blipColor = b.type === 'scavenger' ? '#ffaa00'
+                        : b.type === 'player'    ? '#44ff88'
+                        : '#ff2a2a';
+
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+        ctx.shadowColor = blipColor;
+        ctx.shadowBlur  = 14 * intensity;
+        ctx.fillStyle   = blipColor;
+        ctx.globalAlpha = 0.3 + intensity * 0.7;
+        ctx.beginPath(); ctx.arc(tx, ty, 6, 0, Math.PI * 2); ctx.fill();
+
+        ctx.globalAlpha = 0.2 + intensity * 0.4;
+        ctx.strokeStyle = blipColor;
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(tx, ty, pulse, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      });
 
       ctx.globalAlpha = 1;
       ctx.shadowBlur  = 0;
@@ -189,7 +237,8 @@ const RadarCanvas = ({ threatActive, blips }) => {
       rafRef.current = requestAnimationFrame(draw);
     };
 
-    draw();
+    lastFrameRef.current = null;
+    rafRef.current = requestAnimationFrame(draw);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [threatActive]);
 
